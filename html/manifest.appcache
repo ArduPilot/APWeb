@@ -1,0 +1,35 @@
+CACHE MANIFEST
+# Friday 9 June 15:36:03 AEST 2017
+CACHE:
+/
+calibration.html
+filesystem.html
+index.html
+map.html
+nvram.html
+parameters.html
+status.html
+system.html
+upgrade.html
+js/charts.js
+js/config.js
+js/cors.js
+js/database.js
+js/leaflet.js
+js/leaflet.rotatedMarker.js
+js/L.TileLayer.PouchDBCached.js
+js/mavlink.js
+js/pouchdb.js
+js/smoothie.min.js
+js/tabs.js
+js/ublox.js
+images/home.svg
+images/main_logo.svg
+images/greencopter.png
+images/main_logo.png
+images/redcopter.png
+css/leaflet.css
+css/styles.css
+data/apm.pdef.xml
+NETWORK:
+*
