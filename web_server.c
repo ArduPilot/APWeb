@@ -15,6 +15,10 @@ static pthread_mutex_t lock;
 static int num_sockets_open;
 static int debug_level;
 static int serial_port_fd = -1;
+static int fc_udp_in_fd = -1;
+
+struct sockaddr_in fc_addr;
+socklen_t fc_addrlen;
 
 #ifndef bool
 #define bool int
@@ -151,6 +155,11 @@ void mavlink_fc_write(const uint8_t *buf, size_t size)
     if (serial_port_fd != -1) {
         write(serial_port_fd, buf, size);
     }
+    if (fc_udp_in_fd != -1) {
+        if (fc_addrlen != 0) {
+            sendto(fc_udp_in_fd, buf, size, 0, (struct sockaddr*)&fc_addr, fc_addrlen);
+        }
+    }
 }
 
 /*
@@ -158,7 +167,14 @@ void mavlink_fc_write(const uint8_t *buf, size_t size)
  */
 void mavlink_fc_send(mavlink_message_t *msg)
 {
-    _mavlink_resend_uart(MAVLINK_COMM_FC, msg);
+    if (serial_port_fd != -1) {
+        _mavlink_resend_uart(MAVLINK_COMM_FC, msg);
+    }
+    if (fc_udp_in_fd != -1) {
+        uint8_t buf[600];
+        uint16_t len = mavlink_msg_to_send_buffer(buf, msg);
+        mavlink_fc_write(buf, len);
+    }
 }
 
 /*
@@ -257,6 +273,13 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
             }
         }
 
+        if (fc_udp_in_fd != -1) {
+            FD_SET(fc_udp_in_fd, &fds);
+            if (fc_udp_in_fd >= numfd) {
+                numfd = fc_udp_in_fd+1;
+            }
+        }
+
         tv.tv_sec = 1;
         tv.tv_usec = 0;
 
@@ -281,14 +304,35 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
             pthread_attr_destroy(&thread_attr);
         }
 
-        // check for incoming UDP packet
+        // check for incoming UDP packet (broadcast)
         if (FD_ISSET(udp_socket_fd, &fds)) {
             // we have data pending
             uint8_t buf[300];
             ssize_t nread = read(udp_socket_fd, buf, sizeof(buf));
             if (nread > 0) {
                 // send the data straight to the flight controller
-                write(serial_port_fd, buf, nread);
+                mavlink_fc_write(buf, nread);
+            }
+        }
+
+        if (FD_ISSET(fc_udp_in_fd, &fds) || true) {
+            // we have data pending
+            uint8_t buf[3000];
+            fc_addrlen = sizeof(fc_addr);
+            ssize_t nread = recvfrom(fc_udp_in_fd, buf, sizeof(buf), MSG_DONTWAIT, (struct sockaddr*)&fc_addr, &fc_addrlen);
+            if (nread <= 0) {
+                /* printf("Read error from flight controller\n"); */
+            } else {
+                mavlink_message_t msg;
+                mavlink_status_t status;
+                for (uint16_t i=0; i<nread; i++) {
+                    if (mavlink_parse_char(MAVLINK_COMM_FC, buf[i], &msg, &status)) {
+                        if (!mavlink_handle_msg(&msg)) {
+                            // forward to network connection as a udp broadcast packet
+                            mavlink_broadcast(udp_socket_fd, &msg);
+                        }
+                    }
+                }
             }
         }
 
@@ -376,7 +420,7 @@ static int tcp_open(unsigned port)
 
 
 /*
-  open a UDP socket 
+  open a UDP socket for broadcasting on port 14550
 
   We will listen on a emphemeral port, and send to the broadcast
   address
@@ -407,6 +451,35 @@ static int udp_open(void)
     return res;
 }
 
+/*
+  open a UDP socket for taking messages from the flight controller
+ */
+static int udp_in_open(int port)
+{
+    struct sockaddr_in sock;
+    int res;
+    int one=1;
+
+    memset(&sock,0,sizeof(sock));
+
+    sock.sin_port = htons(port);
+    /* sock.sin_addr.s_addr = htonl(INADDR_LOOPBACK); */
+    sock.sin_family = AF_INET;
+
+    res = socket(AF_INET, SOCK_DGRAM, 17);
+    if (res == -1) { 
+        return -1;
+    }
+
+    setsockopt(res,SOL_SOCKET,SO_REUSEADDR,(char *)&one,sizeof(one));
+
+    if (bind(res, (struct sockaddr *)&sock, sizeof(sock)) < 0) { 
+        return(-1); 
+    }
+
+    return res;
+}
+
 /* main program, start listening and answering queries */
 int main(int argc, char *argv[])
 {
@@ -415,10 +488,11 @@ int main(int argc, char *argv[])
     int opt;
     const char *serial_port = NULL;
     unsigned baudrate = 57600;
-    const char *usage = "Usage: web_server -p http_port -b baudrate -s serial_port -d debug_level -u";
+    const char *usage = "Usage: web_server -p http_port -b baudrate -s serial_port -d debug_level -u -f fc_udp_in";
     bool do_udp_broadcast = 0;
+    int fc_udp_in_port = -1;
 
-    while ((opt=getopt(argc, argv, "p:s:b:hd:u")) != -1) {
+    while ((opt=getopt(argc, argv, "p:s:b:hd:uf:")) != -1) {
         switch (opt) {
         case 'p':
             http_port = atoi(optarg);
@@ -435,12 +509,21 @@ int main(int argc, char *argv[])
         case 'u':
             do_udp_broadcast = 1;
             break;
+        case 'f':
+            fc_udp_in_port = atoi(optarg);
+            break;
         case 'h':
         default:
             printf("%s\n", usage);
             exit(1);
             break;
         }
+    }
+
+    if (fc_udp_in_port !=-1 && serial_port != NULL) {
+        // don't want to muck around with multiple mavlink channels
+        fprintf(stderr, "Only one of serial port and udp-in-port (-s and -u) can be supplied");
+        exit(1);
     }
 
     pthread_mutex_init(&lock, NULL);
@@ -467,6 +550,14 @@ int main(int argc, char *argv[])
         http_socket_fd = tcp_open(http_port);
         if (http_socket_fd == -1) {
             printf("Failed to open TCP socket\n");
+            exit(1);
+        }
+    }
+
+    if (fc_udp_in_port != -1) {
+        fc_udp_in_fd = udp_in_open(fc_udp_in_port);
+        if (fc_udp_in_fd == -1) {
+            printf("Failed to open UDP-in socket\n");
             exit(1);
         }
     }
