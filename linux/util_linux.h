@@ -20,8 +20,8 @@ uint32_t get_time_boot_ms();
 void mdelay(uint32_t ms);
 
 bool toggle_recording(void);
-void reboot(void);
 
+void __reboot(void); // __ so we don't call the os version of this by mistake.
 
 char *print_vprintf(void *ctx, const char *fmt, va_list ap);
 void *print_printf(void *ctx, const char *fmt, ...);

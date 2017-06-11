@@ -320,7 +320,7 @@ static void mavlink_message_send(struct template_state *tmpl, const char *name, 
 static void reboot_companion(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
 {
     console_printf("rebooting ...\n");
-    reboot();    
+    __reboot();    
 }
 
 extern void snx_nvram_bootup_upgrade(void);
