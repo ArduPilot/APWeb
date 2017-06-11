@@ -65,9 +65,14 @@ bool toggle_recording(void)
     return false;
 }
 
-void reboot(void)
+void __reboot(void)
 {
-    printf("reboot not implemented\n");
+    #if __APPLE__
+        printf("reboot OSX implemented, but disabled for now.\n");
+        //reboot(0);
+    #else
+        printf("reboot not implemented\n");
+    #endif
 }
 
 
