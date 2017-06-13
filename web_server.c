@@ -537,7 +537,9 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
                     if (mavlink_parse_char(MAVLINK_COMM_FC, buf[i], &msg, &status)) {
                         if (!mavlink_handle_msg(&msg)) {
                             // forward to network connection as a udp broadcast packet
-                            mavlink_broadcast(udp_socket_fd, &msg);
+                            if (udp_socket_fd != -1) {
+                                mavlink_broadcast(udp_socket_fd, &msg);
+                            }
                         }
                     }
                 }
@@ -560,7 +562,9 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
                 if (mavlink_parse_char(MAVLINK_COMM_FC, buf[i], &msg, &status)) {
                     if (!mavlink_handle_msg(&msg)) {
                         // forward to network connection as a udp broadcast packet
-                        mavlink_broadcast(udp_socket_fd, &msg);
+                        if (udp_socket_fd != -1) {
+                            mavlink_broadcast(udp_socket_fd, &msg);
+                        }
                     }
                 }
             }
