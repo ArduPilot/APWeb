@@ -1,6 +1,7 @@
 #include "../includes.h"
 #include "../template.h"
 #include "functions.h"
+#include "../functions.h"
 
 #include <dirent.h>
 #include <errno.h>

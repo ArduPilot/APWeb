@@ -1,0 +1,94 @@
+<!DOCTYPE HTML>
+<html manifest="manifest.appcache">
+  <head>
+    <title>ArduPilot</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="text/javascript" src="/js/config.js"></script>
+    <script type="text/javascript" src="/js/cors.js"></script>
+    <script type="text/javascript" src="/js/mavlink.js"></script>
+  </head>
+<body>
+
+<p><a href="/index.html"><img src="/images/main_logo.png" alt="ArduPilot"></a></p>
+
+<h1>System Control</h1>
+
+Control system setup of your vehicle
+<p>
+<div id="command_result"></div>
+<p>
+    
+<hr/>
+<h2>WiFi Setup</h2>
+
+Configure your WiFi SSID, password, authentication type and
+channel.
+
+<p>If using WEP you need to use a 5 character password. For WPA2 your
+password needs to be at least 8 characters long. Using WPA2 is
+recommended.<p>
+
+<fieldset>
+  <legend>WiFi Configuration</legend>
+  WiFi SSID:<br>
+<input type="text" id="ssid" value=""><br>
+WiFi Password:<br>
+<input type="password" id="password" id="password" value="">
+<input type="checkbox" onchange="document.getElementById('password').type = this.checked ? 'text' : 'password'">Show password<br>
+Auth Type: 
+<select name="authmode" id="authmode">
+  <option value="0">None</option>
+  <option value="1">WEP</option>
+  <option value="2">WPA</option>
+  <option value="3">WPA2</option>
+</select>
+WiFi Channel: 
+<select name="channel" id="channel">
+  <option value="1">1</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4</option>
+  <option value="5">5</option>
+  <option value="6">6</option>
+  <option value="7">7</option>
+  <option value="8">8</option>
+  <option value="9">9</option>
+  <option value="10">10</option>
+  <option value="11">11</option>
+  <option value="12">12</option>
+  <option value="13">13</option>
+  <option value="14">14</option>
+</select>
+<br><input type="submit" name="action" value="Set SSID and Password" onclick="set_ssid();" />
+</fieldset>
+
+<script>
+    function set_ssid(action) {
+        var args = [
+            document.getElementById("ssid").value,
+            document.getElementById("password").value,
+            document.getElementById("authmode").value,
+            document.getElementById("channel").value];
+        var cmd = "set_ssid(" + args.join() + ")";
+        command_send(cmd, {fillid:"command_result"});
+    }
+
+    // get the wifi information
+    command_send('get_ssid()', {filljson : true});
+</script>
+
+<hr/>
+<h2>Reboot</h2>
+
+Reboot your companion computer or flight controller board<p>
+
+<input type="submit" name="action" value="Reboot CC" onclick="command_send('reboot_companion()');"/>
+<input type="submit" name="action" value="Reboot Flight Board" onclick="mavlink_command_long_send(MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, 0, 1);"/>
+
+<hr>
+<p><a href="/index.html">home</a>
+
+</body>
+</html>
+
