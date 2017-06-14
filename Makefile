@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -g -Werror -std=gnu99
 
-SRC = $(wildcard *.c) $(wildcard lib/*.c) $(wildcard linux/*.c)
+SRC = $(wildcard *.c) $(wildcard lib/*.c) $(wildcard linux/*.c) $(wildcard posix/*.c)
 OBJ = $(SRC:%.c=%.o)
 LIBS = -ltalloc -lpthread
 
