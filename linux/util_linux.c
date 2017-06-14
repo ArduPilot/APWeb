@@ -68,6 +68,8 @@ void __reboot(void)
     #if __APPLE__
         printf("reboot OSX implemented, but disabled for now.\n");
         //reboot(0);
+    #elif __linux__
+        system("/sbin/shutdown -t now -r");
     #else
         printf("reboot not implemented\n");
     #endif
