@@ -1,0 +1,3 @@
+*.o
+generated
+web_server
