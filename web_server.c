@@ -299,7 +299,7 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
             pthread_attr_t thread_attr;
 
             pthread_attr_init(&thread_attr);
-            pthread_attr_setdetachstate(&thread_attr, 0);
+            pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
             pthread_create(&thread_id, &thread_attr, web_server_connection_process, (void*)(intptr_t)fd);
             pthread_attr_destroy(&thread_attr);
         }
