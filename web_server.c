@@ -526,7 +526,10 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
         if (http_socket_fd != -1 &&
             FD_ISSET(http_socket_fd, &fds)) {
             int fd = accept(http_socket_fd, NULL,0);
-            if (fd == -1) continue;
+            if (fd == -1) {
+                fprintf(stderr, "accept failed: %s\n", strerror(errno));
+                continue;
+            };
         
             // use a thread per connection. This allows for sending MAVLink messages
             // via mavlink_fc_send() from connections
