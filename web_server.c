@@ -596,21 +596,22 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
             uint8_t buf[200];
             ssize_t nread = read(serial_port_fd, buf, sizeof(buf));
             if (nread <= 0) {
-                printf("Read error from flight controller\n");
+                printf("Read error from flight controller: %s\n", strerror(errno));
                 // we should re-open serial port
-                exit(1);
-            }
-            mavlink_message_t msg;
-            mavlink_status_t status;
-            for (uint16_t i=0; i<nread; i++) {
-                if (mavlink_parse_char(MAVLINK_COMM_FC, buf[i], &msg, &status)) {
-                    if (!mavlink_handle_msg(&msg)) {
-                        // forward to network connection as a udp broadcast packet
-                        if (udp_socket_fd != -1) {
-                            mavlink_broadcast(udp_socket_fd, &msg);
+                /* exit(1); */
+            } else {
+                mavlink_message_t msg;
+                mavlink_status_t status;
+                for (uint16_t i=0; i<nread; i++) {
+                    if (mavlink_parse_char(MAVLINK_COMM_FC, buf[i], &msg, &status)) {
+                        if (!mavlink_handle_msg(&msg)) {
+                            // forward to network connection as a udp broadcast packet
+                            if (udp_socket_fd != -1) {
+                                mavlink_broadcast(udp_socket_fd, &msg);
+                            }
+                            // send to udp-out connection
+                            mavlink_send_udp_out(&msg);
                         }
-                        // send to udp-out connection
-                        mavlink_send_udp_out(&msg);
                     }
                 }
             }
