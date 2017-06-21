@@ -470,6 +470,43 @@ end:
     vTaskDelete(NULL);
 }
 #else
+void do_http_accept(const int sockfd)
+{
+    int fd = accept(sockfd, NULL,0);
+    if (fd == -1) {
+        console_printf("accept failed: %s\n", strerror(errno));
+        goto BAD_ACCEPT;
+    };
+
+    // use a thread per connection. This allows for sending MAVLink messages
+    // via mavlink_fc_send() from connections
+    pthread_t thread_id;
+    pthread_attr_t thread_attr;
+
+    int perrno;
+    if ((perrno = pthread_attr_init(&thread_attr)) != 0) {
+        console_printf("pthread_attr_init failed: %s\n", strerror(perrno));
+        goto BAD_PTHREAD_INIT;
+    }
+    if ((perrno = pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED)) != 0) {
+        console_printf("pthread_attr_setdetachstate failed: %s\n", strerror(perrno));
+        goto BAD_PTHREAD_SETDETEACHSTATE;
+    }
+    if ((perrno = pthread_create(&thread_id, &thread_attr, web_server_connection_process, (void*)(intptr_t)fd)) != 0) {
+        console_printf("pthread_create failed: %s\n", strerror(perrno));
+        goto BAD_PTHREAD_CREATE;
+    }
+    pthread_attr_destroy(&thread_attr);
+    return;
+
+BAD_PTHREAD_CREATE:
+BAD_PTHREAD_SETDETEACHSTATE:
+    pthread_attr_destroy(&thread_attr);
+BAD_PTHREAD_INIT:
+    close(fd);
+BAD_ACCEPT:
+    return;
+}
 /*
   main select loop
  */
@@ -525,21 +562,7 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
         // check for new incoming tcp connection
         if (http_socket_fd != -1 &&
             FD_ISSET(http_socket_fd, &fds)) {
-            int fd = accept(http_socket_fd, NULL,0);
-            if (fd == -1) {
-                fprintf(stderr, "accept failed: %s\n", strerror(errno));
-                continue;
-            };
-        
-            // use a thread per connection. This allows for sending MAVLink messages
-            // via mavlink_fc_send() from connections
-            pthread_t thread_id;
-            pthread_attr_t thread_attr;
-
-            pthread_attr_init(&thread_attr);
-            pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
-            pthread_create(&thread_id, &thread_attr, web_server_connection_process, (void*)(intptr_t)fd);
-            pthread_attr_destroy(&thread_attr);
+            do_http_accept(http_socket_fd);
         }
 
         // check for incoming UDP packet (broadcast)
