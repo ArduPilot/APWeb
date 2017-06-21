@@ -733,7 +733,7 @@ int main(int argc, char *argv[])
 
     if (fc_udp_in_port !=-1 && serial_port != NULL) {
         // don't want to muck around with multiple mavlink channels
-        fprintf(stderr, "Only one of serial port and udp-in-port (-s and -u) can be supplied");
+        console_printf("Only one of serial port and udp-in-port (-s and -u) can be supplied");
         exit(1);
     }
 
