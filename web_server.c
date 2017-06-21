@@ -650,7 +650,7 @@ static int mavlink_serial_open(const char *path, unsigned baudrate)
 /*
   open a TCP listening socket
  */
-static int tcp_open(unsigned port)
+static int tcp_open(const char *ip, const unsigned port)
 {
     struct sockaddr_in sock;
     int listen_sock;
@@ -659,6 +659,12 @@ static int tcp_open(unsigned port)
     memset((char *)&sock, 0, sizeof(sock));
     sock.sin_port = htons(port);
     sock.sin_family = AF_INET;
+    if (ip != NULL) {
+        if (inet_pton(AF_INET, ip, &sock.sin_addr.s_addr) != 1) {
+            printf("Failed to convert IP address\n");
+            exit(1);
+        }
+    }
     listen_sock = socket(AF_INET, SOCK_STREAM, 0);
 
     setsockopt(listen_sock, SOL_SOCKET,SO_REUSEADDR,(char *)&one,sizeof(one));
@@ -778,7 +784,6 @@ static int udp_out_open(const char *ip, const int port)
 /* main program, start listening and answering queries */
 int main(int argc, char *argv[])
 {
-    int http_port = -1;
     extern char *optarg;
     int opt;
     const char *serial_port = NULL;
@@ -787,6 +792,7 @@ int main(int argc, char *argv[])
     bool do_udp_broadcast = 0;
     int fc_udp_in_port = -1;
     const char *udp_out_arg = NULL; // e.g. 1.2.3.4:6543
+    const char *http_port_arg = NULL; // e.g. 1.2.3.4:6543 or 6543
 
     // setup default allowed origin
     setup_origin(public_origin);
@@ -794,7 +800,7 @@ int main(int argc, char *argv[])
     while ((opt=getopt(argc, argv, "p:s:b:hd:uf:O:")) != -1) {
         switch (opt) {
         case 'p':
-            http_port = atoi(optarg);
+            http_port_arg = optarg;
             break;
         case 's':
             serial_port = optarg;
@@ -848,8 +854,16 @@ int main(int argc, char *argv[])
     }
 
     int http_socket_fd = -1;
-    if (http_port != -1) {
-        http_socket_fd = tcp_open(http_port);
+    if (http_port_arg != NULL) {
+        char *colon = strchr(http_port_arg, ':');
+        if (colon == NULL) {
+            // just a port number
+            http_socket_fd = tcp_open(NULL, atoi(http_port_arg));
+        } else {
+            *colon = '\0';
+            http_socket_fd = tcp_open(http_port_arg, atoi(colon+1));
+        }
+
         if (http_socket_fd == -1) {
             printf("Failed to open TCP socket\n");
             exit(1);
