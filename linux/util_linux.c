@@ -97,3 +97,10 @@ void *print_printf(void *ctx, const char *fmt, ...)
     va_end(ap);
     return ret;
 }
+
+
+
+unsigned xPortGetFreeHeapSize()
+{
+    return 0;
+}
