@@ -24,6 +24,7 @@
 #include "files/version.h"
 #include <uart/uart.h>
 #include <libmid_isp/snx_mid_isp.h>
+#endif
 
 /*
   get uptime in seconds
@@ -36,6 +37,7 @@ static void uptime(struct template_state *tmpl, const char *name, const char *va
 /*
   get FC mavlink packet count
  */
+unsigned mavlink_fc_pkt_count();
 static void fc_mavlink_count(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
 {
     sock_printf(tmpl->sock, "%u", mavlink_fc_pkt_count());
@@ -44,6 +46,8 @@ static void fc_mavlink_count(struct template_state *tmpl, const char *name, cons
 /*
   get FC mavlink baudrate
  */
+int uart2_get_baudrate();
+
 static void fc_mavlink_baudrate(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
 {
     sock_printf(tmpl->sock, "%u", uart2_get_baudrate());
@@ -57,7 +61,6 @@ static void mem_free(struct template_state *tmpl, const char *name, const char *
     int mem_type = argc>0?atoi(argv[0]):1;
     sock_printf(tmpl->sock, "%u", xPortGetFreeHeapSize(mem_type));
 }
-#endif
 
 /*
   get upload progress
@@ -1007,8 +1010,6 @@ failed:
 void functions_init(struct template_state *tmpl)
 {
 #ifdef SYSTEM_FREERTOS
-    tmpl->put(tmpl, "uptime", "", uptime);
-    tmpl->put(tmpl, "mem_free", "", mem_free);
     tmpl->put(tmpl, "snapshot", "", snapshot);
     tmpl->put(tmpl, "mjpgvideo", "", mjpg_video);
     tmpl->put(tmpl, "take_picture", "", take_picture);
@@ -1022,8 +1023,6 @@ void functions_init(struct template_state *tmpl)
     tmpl->put(tmpl, "file_listdir", "", file_listdir);
     tmpl->put(tmpl, "disk_info", "", disk_info);
     tmpl->put(tmpl, "set_time_utc", "", set_time_utc);
-    tmpl->put(tmpl, "fc_mavlink_count", "", fc_mavlink_count);
-    tmpl->put(tmpl, "fc_mavlink_baudrate", "", fc_mavlink_baudrate);
     tmpl->put(tmpl, "mga_status", "", mga_status);
     tmpl->put(tmpl, "mga_upload", "", mga_upload);
     tmpl->put(tmpl, "nvram_pack_list", "", nvram_pack_list);
@@ -1034,6 +1033,10 @@ void functions_init(struct template_state *tmpl)
 #ifdef _POSIX_VERSION
     posix_functions_init(tmpl);
 #endif
+    tmpl->put(tmpl, "uptime", "", uptime);
+    tmpl->put(tmpl, "mem_free", "", mem_free);
+    tmpl->put(tmpl, "fc_mavlink_count", "", fc_mavlink_count);
+    tmpl->put(tmpl, "fc_mavlink_baudrate", "", fc_mavlink_baudrate);
     tmpl->put(tmpl, "format_storage", "", format_storage);
     tmpl->put(tmpl, "factory_reset", "", factory_reset);
     tmpl->put(tmpl, "reboot_companion", "", reboot_companion);

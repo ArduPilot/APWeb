@@ -25,3 +25,8 @@ void __reboot(void); // __ so we don't call the os version of this by mistake.
 
 char *print_vprintf(void *ctx, const char *fmt, va_list ap);
 void *print_printf(void *ctx, const char *fmt, ...);
+
+
+
+unsigned mavlink_fc_pkt_count();
+unsigned xPortGetFreeHeapSize();
