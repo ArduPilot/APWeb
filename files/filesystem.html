@@ -37,6 +37,26 @@ Card Label: <b id="disk_label"></b><br>
     var current_directory = "/";
     var file_list = [];
 
+    // from https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
+    function decode_params() {
+        var match;
+        var pl     = /\+/g;  // Regex for replacing addition symbol with a space
+        var search = /([^&=]+)=?([^&]*)/g;
+        var decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); };
+        var query  = window.location.search.substring(1);
+
+        urlParams = {};
+        while (match = search.exec(query)) {
+            urlParams[decode(match[1])] = decode(match[2]);
+        }
+        return urlParams
+    }
+
+    params = decode_params()
+    if (params["start_directory"]) {
+        current_directory = params["start_directory"]
+    }
+
     function fill_directory(json) {
         var table = document.getElementById("directory_table");
 
