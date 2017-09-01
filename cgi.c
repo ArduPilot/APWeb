@@ -21,6 +21,10 @@
 #include "includes.h"
 #include <ctype.h>
 
+#ifdef _POSIX_VERSION
+#include "posix/functions.h"
+#endif
+
 #define CONTENT_DISPOSITION "Content-Disposition:"
 #define CONTENT_TYPE "Content-Type:"
 #define MULTIPART_FORM_DATA "multipart/form-data"
@@ -589,13 +593,11 @@ static void download(struct cgi_state *cgi, const char *path)
     
     mtype = get_mime_type(path);
 
-#ifdef SYSTEM_FREERTOS
     if (strncmp(path, "fs/", 3) == 0) {
         download_filesystem(cgi, path);
         return;
     }
-#endif
-    
+
     size_t size = 0;
     const char *contents = get_embedded_file(path, &size);
     if (!contents) {

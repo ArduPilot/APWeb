@@ -2,10 +2,15 @@
 #include "../template.h"
 #include "functions.h"
 
-#include <sys/statvfs.h>
-
-#include <sys/types.h>
 #include <dirent.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/statvfs.h>
+#include <sys/types.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 
 static void sock_send_diskinfo(struct sock_buf *sock, const char *label, unsigned serial, unsigned total_clusters, unsigned free_clusters, unsigned cluster_size)
 {
@@ -104,6 +109,51 @@ static void file_listdir(struct template_state *tmpl, const char *name, const ch
     closedir(dh);
 }
 
+void download_filesystem(struct cgi_state *cgi, const char *fs_path)
+{
+    const char *path = fs_path+2;
+
+    struct stat stats;
+    if (stat(path, &stats) == -1) {
+        cgi->http_error(cgi, "404 Bad File", "", "file not found");
+        return;
+    }
+
+    cgi->content_length = stats.st_size;
+    const int fd = open(path, O_RDONLY);
+    if(fd == -1) {
+        cgi->http_error(cgi, "500 Open failed", "", strerror(errno));
+        return;
+    }
+    cgi->http_header(cgi, fs_path);
+    char buf[2048];
+    do {
+        const ssize_t read_count = read(fd, buf, sizeof(buf));
+        if (read_count == -1) {
+            console_printf("Read failure: %s", strerror(errno));
+            return;
+        }
+        if (read_count == 0) {
+            // EOF
+            break;
+        }
+        ssize_t to_write = read_count;
+        while (to_write > 0) {
+            ssize_t write_count = sock_write(cgi->sock, buf, to_write);
+            if (write_count == 0) {
+                console_printf("EOF on write?!");
+                return;
+            }
+            if (write_count == -1) {
+                console_printf("Error on write: %s", strerror(errno));
+                return;
+            }
+            to_write -= write_count;
+        }
+    } while (1);
+
+    close(fd);
+}
 
 void posix_functions_init(struct template_state *tmpl)
 {
