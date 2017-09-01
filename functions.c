@@ -388,7 +388,7 @@ const char *validate_ssid_password(const char *ssid,
                                           apweb_enc_auth_t auth_mode,
                                           int channel)
 {
-    if (channel < 1 || channel > 14) {
+    if (channel < 0 || channel > 14) {
         return "Invalid WiFi channel";
     }
     switch (auth_mode) {
