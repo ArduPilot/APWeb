@@ -6,3 +6,4 @@
 #include "../includes.h"
 
 void posix_functions_init(struct template_state *tmpl);
+void download_filesystem(struct cgi_state *cgi, const char *fs_path);
