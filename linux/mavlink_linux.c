@@ -297,6 +297,40 @@ void mavlink_message_list_json(struct sock_buf *sock)
     sock_printf(sock, "]");
 }
 
+enum TIME_SOURCE {
+    TIME_SOURCE_NONE=0,
+    TIME_SOURCE_FC,
+};
+static uint8_t time_source = 0;
+
+bool mavlink_should_handle_system_time()
+{
+    if (time_source >= TIME_SOURCE_FC) {
+        return false;
+    }
+    return true;
+}
+
+void set_system_time_utc_usec(const time_t epoch_time)
+{
+    if (stime(&epoch_time) == -1) {
+        fprintf(stderr, "Failed to set time: %s\n", strerror(errno));
+    }
+}
+
+
+void mavlink_handle_system_time(const mavlink_system_time_t *m)
+{
+#define FC_MIN_DATE 1494314686
+    if (m->time_unix_usec > FC_MIN_DATE) {
+        fprintf(stderr, "Setting system time to %u (from fc)\n",
+                (uint32_t)m->time_unix_usec/1000000);
+        set_system_time_utc_usec(m->time_unix_usec/1000000);
+        time_source = TIME_SOURCE_FC;
+    }
+}
+
+
 /*
  * handle an (as yet undecoded) mavlink message
  */
@@ -321,7 +355,16 @@ bool mavlink_handle_msg(const mavlink_message_t *msg)
         command_ack_save(&m);
         break;
     }
-        
+
+    case MAVLINK_MSG_ID_SYSTEM_TIME: {
+        if (mavlink_should_handle_system_time()) {
+            mavlink_system_time_t m;
+            mavlink_msg_system_time_decode(msg, &m);
+            mavlink_handle_system_time(&m);
+        }
+        break;
+    }
+
     default:
 	break;
     }
