@@ -3,6 +3,7 @@
  */
 
 #include "../includes.h"
+#include <time.h>
 
 /*
   list of packet types received
@@ -311,9 +312,9 @@ bool mavlink_should_handle_system_time()
     return true;
 }
 
-void set_system_time_utc_usec(const time_t epoch_time)
+void set_system_time_utc_usec(const struct timespec *ts)
 {
-    if (stime(&epoch_time) == -1) {
+    if (clock_settime(CLOCK_REALTIME, ts) == -1) {
         fprintf(stderr, "Failed to set time: %s\n", strerror(errno));
     }
 }
@@ -323,9 +324,13 @@ void mavlink_handle_system_time(const mavlink_system_time_t *m)
 {
 #define FC_MIN_DATE 1494314686
     if (m->time_unix_usec > FC_MIN_DATE) {
-        fprintf(stderr, "Setting system time to %u (from fc)\n",
-                (uint32_t)m->time_unix_usec/1000000);
-        set_system_time_utc_usec(m->time_unix_usec/1000000);
+        struct timespec ts = {
+            m->time_unix_usec/1000000,
+            (m->time_unix_usec%1000000) * 1000
+        };
+        fprintf(stderr, "Setting system time to %u.%u (from fc)\n",
+                (uint32_t)ts.tv_sec, (uint32_t)ts.tv_nsec);
+        set_system_time_utc_usec(&ts);
         time_source = TIME_SOURCE_FC;
     }
 }
