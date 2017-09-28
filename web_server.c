@@ -351,6 +351,11 @@ static void setup_origin(const char *origin)
 #endif
 }
 
+void sig_pipe_handler(int signum)
+{
+    web_debug(3, "Caught signal SIGPIPE %d\n",signum);
+}
+
 /*
   task for web_server
 */
@@ -877,6 +882,14 @@ int main(int argc, char *argv[])
         // don't want to muck around with multiple mavlink channels
         console_printf("Only one of serial port and udp-in-port (-s and -u) can be supplied");
         exit(1);
+    }
+
+    // summarily ignore SIGPIPE; without this, if a download is
+    // interrupted sock_write's write() call will kill the process
+    // with SIGPIPE
+    web_debug(4, "Ignoring sig pipe\n");
+    if (signal(SIGPIPE, sig_pipe_handler) == SIG_ERR) {
+        console_printf("Failed to ignore SIGPIPE: %m\n");
     }
 
     pthread_mutex_init(&lock, NULL);
