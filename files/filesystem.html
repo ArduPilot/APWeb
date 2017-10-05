@@ -57,6 +57,17 @@ Card Label: <b id="disk_label"></b><br>
         current_directory = params["start_directory"]
     }
 
+    function find_insertion_point(table, name) {
+        // offset 1 is the table header
+        for (var i=1; i<table.rows.length; i++) {
+            var row = table.rows[i]
+            if (row.cells[1].innerText > name) {
+	        return i;
+            }
+	}
+	return 1;
+    }
+
     function fill_directory(json) {
         var table = document.getElementById("directory_table");
 
@@ -92,11 +103,12 @@ Card Label: <b id="disk_label"></b><br>
 
         var total_size = 0;
         for (var i=0; i<n; i++) {
-            var row = table.insertRow(table.rows.length);
             var rowdata = dlist[i];
             if (current_directory == "/" && rowdata.name == "..") {
                 continue;
             }
+            insertion_point = find_insertion_point(table, rowdata.name)
+            var row = table.insertRow(insertion_point);
             if (rowdata.type == 0) {
                 total_size += rowdata.size;
             }
