@@ -68,7 +68,6 @@ Parameter Category:&nbsp
 
     function fill_parameters(json) {
         var table = document.getElementById("param_table");
-        var search = document.getElementById("search").value.toUpperCase();
 
         // delete any existing rows
         var nrows = table.rows.length;
@@ -105,10 +104,10 @@ Parameter Category:&nbsp
             var c2 = row.insertCell(2);
             var c3 = row.insertCell(3);
             var c4 = row.insertCell(4);
-            show_hide(row, search);
             byname[rowdata.name] = rowdata.value;
         }
         fill_param_docs();
+        search_change();
     }
 
     function refresh() {
