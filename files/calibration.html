@@ -270,9 +270,15 @@ function fill_parameters(plist) {
         var name = plist[i].name;
         var value = plist[i].value;
         var element = document.getElementById(name);
+        params[name] = value;
         if (element != null) {
-            element.innerHTML = value;
-            params[name] = value;
+            element.innerHTML = value.toFixed(1);
+        }
+        var elements = document.getElementsByName(name);
+        if (elements != null) {
+            for (var j=0; j<elements.length; j++) {
+                elements[j].innerHTML = value.toFixed(1);
+            }
         }
     }
 }
