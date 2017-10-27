@@ -373,6 +373,17 @@ function set_message_color(id, color, message) {
 }
 
 /*
+  append a message in a div by id, with given color
+*/
+function append_message_color(id, color, message) {
+    var element = document.getElementById(id);
+    if (element) {
+        element.innerHTML += '<br><b style="color:' + color + '">' + message + '</b>';
+    }
+    mavlink_statustext(MAV_SEVERITY_INFO, message);
+}
+
+/*
   get utc time in seconds
 */
 function get_utc_sec() {
