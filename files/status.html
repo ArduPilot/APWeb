@@ -27,6 +27,7 @@
   <button class="tablinks" onclick="openTab(event, 'Transmitter')">Transmitter</button>
   <button class="tablinks" onclick="openTab(event, 'Camera')">Camera</button>
   <button class="tablinks" onclick="openTab(event, 'Motors')">Motors</button>
+  <button class="tablinks" onclick="openTab(event, 'Messages')">Messages</button>
 </div>
 
 <div id="System" class="tabcontent">
@@ -328,6 +329,14 @@ Select motor to test, along with test power level (as a percentage) and test tim
 
 </div>
 
+<div id="Messages" class="tabcontent">
+
+  <h2>Flight Controller Messages</h2>
+
+<textarea id="STATUSTEXT" cols="80" rows="20" readonly></textarea>
+
+</div>
+
   Refresh rate:&nbsp;
   <select name="refresh_rate" id="refresh_rate">
     <option value="1" selected>1</option>
@@ -367,8 +376,29 @@ function tab_clicked(tabName) {
 // setup default Tab
 document.getElementById("defaultTab").click();
 
-// callback for filling in buttons
-function button_callback(mavlink) {
+last_statustext_seq = -1;
+
+// callback for filling in mavlink fields
+function mavlink_callback(mavlink) {
+    // pad dates with leading zeros
+    function two_pad(v) {
+        if (v >= 10) {
+            return v;
+        }
+        return "0" + v;
+    }
+
+    if (mavlink.STATUSTEXT != null) {
+        if (mavlink.STATUSTEXT._seq != last_statustext_seq) {
+            last_statustext_seq = mavlink.STATUSTEXT._seq;
+            var d = new Date();
+            d.setSeconds(d.getSeconds() - (mavlink.STATUSTEXT._age/1000));
+            var tstring = two_pad(d.getHours()) + ":" + two_pad(d.getMinutes()) + ":" + two_pad(d.getSeconds());
+            var text = tstring + " " + mavlink.STATUSTEXT.text + "\r\n";
+            document.getElementById("STATUSTEXT").value += text;
+        }
+    }
+
     // decode buttons from channel values
     if (mavlink.RC_CHANNELS == null) {
         return;
@@ -393,7 +423,9 @@ function button_callback(mavlink) {
     document.getElementById("power_button").innerHTML = pressed_str[power_button];
 }
 
-fill_mavlink_ids({ 'chart_lines' : chart_lines, 'callback_fn' : button_callback });
+fill_mavlink_ids({ 'chart_lines' : chart_lines,
+                   'callback_fn' : mavlink_callback,
+                   'extra_msgs' : ['STATUSTEXT'] });
 
 // poll system information at 1Hz
 ajax_json_poll_fill(drone_url + "/ajax/sysinfo.json", 1000);
