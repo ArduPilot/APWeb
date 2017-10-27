@@ -95,8 +95,8 @@ bool mavlink_json_message(struct sock_buf *sock, const mavlink_message_t *msg, u
     sock_printf(sock, "\"%s\" : { ", m->name);
     for (i=0; i<m->num_fields; i++) {
         print_field(sock, msg, &f[i]);
-            sock_printf(sock, ",");
-        }
+        sock_printf(sock, ",");
+    }
     sock_printf(sock, "\"_seq\" : %u, ", msg->seq);
     sock_printf(sock, "\"_sysid\" : %u, ", msg->sysid);
     sock_printf(sock, "\"_compid\" : %u, ", msg->compid);
@@ -259,5 +259,3 @@ bool mavlink_message_send_args(int argc, char **argv)
     
     return true;
 }
-
-
