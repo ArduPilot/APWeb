@@ -21,7 +21,7 @@
 
 </table>
 
-<p>Directory size: <b id="total_size"></b> MByte<br>
+<p>Directory size: <b id="total_size"></b> MByte in <b id="num_files"></b> files<br>
 Card Size: <b id="disk_total_gb"></b>&nbsp;GByte<br>
 Card Free: <b id="disk_free_gb"></b>&nbsp;GByte<br>
 Card Label: <b id="disk_label"></b><br>
@@ -34,10 +34,13 @@ Card Label: <b id="disk_label"></b><br>
 </body>
 <script>
     var current_directory = "/";
+    var file_list = [];
 
     function fill_directory(json) {
         var table = document.getElementById("directory_table");
 
+        file_list = [];
+        
         // delete any existing rows
         var nrows = table.rows.length;
         for (var i=nrows-1; i>0; i--) {
@@ -91,6 +94,7 @@ Card Label: <b id="disk_label"></b><br>
                         v = '<a href="#" onclick="list_directory(\'' + link_name + '\');return false;">' + v + '</a>';
                         console.log(v);
                     } else {
+                        file_list.push(link_name);
                         v = '<a href="' + drone_url + '/fs' + link_name + '">' + v + '</a>';
                     }
                 } else if (a == "type") {
@@ -105,6 +109,7 @@ Card Label: <b id="disk_label"></b><br>
         }
 
         document.getElementById("total_size").innerHTML = (total_size / (1<<20)).toFixed(2);
+        document.getElementById("num_files").innerHTML = file_list.length;
     }
 
     function fill_disk_info(json) {
