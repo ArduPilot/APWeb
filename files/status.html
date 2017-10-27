@@ -357,6 +357,7 @@ Select motor to test, along with test power level (as a percentage) and test tim
 <p><a href="index.html">home</a>
 
 <script type="text/javascript">
+
 create_chart("accel_canvas", ["MAVLINK:RAW_IMU:xacc", "MAVLINK:RAW_IMU:yacc", "MAVLINK:RAW_IMU:zacc"]);
 create_chart("gyro_canvas",  ["MAVLINK:RAW_IMU:xgyro", "MAVLINK:RAW_IMU:ygyro", "MAVLINK:RAW_IMU:zgyro"]);
 create_chart("mag_canvas",   ["MAVLINK:RAW_IMU:xmag", "MAVLINK:RAW_IMU:ymag", "MAVLINK:RAW_IMU:zmag"]);
@@ -365,6 +366,8 @@ create_chart("pressure_canvas",   ["MAVLINK:SCALED_PRESSURE:press_abs"]);
 create_chart("temperature_canvas",["MAVLINK:SCALED_PRESSURE:temperature"]);
 create_chart("gps_canvas",        ["MAVLINK:GPS2_RAW:vel","MAVLINK:GPS2_RAW:eph","MAVLINK:GPS2_RAW:epv"]);
 create_chart("tx_canvas",         ["MAVLINK:RC_CHANNELS:chan1_raw","MAVLINK:RC_CHANNELS:chan2_raw","MAVLINK:RC_CHANNELS:chan3_raw","MAVLINK:RC_CHANNELS:chan4_raw"]);
+
+var have_3d_fix = false;
 
 /* called after a tab is clicked */
 function tab_clicked(tabName) {
@@ -411,6 +414,16 @@ function mavlink_callback(mavlink) {
         }
     }
 
+    if (mavlink.GPS_RAW_INT != null && mavlink.GPS_RAW_INT.fix_type >= 3) {
+        // save position when available
+        if (!have_3d_fix) {
+            have_3d_fix = true;
+            var gps_pos = [mavlink.GPS_RAW_INT.lat*1.0e-7, mavlink.GPS_RAW_INT.lon*1.0e-7, mavlink.GPS_RAW_INT.alt/10];
+            console.log("Saving last_position " + gps_pos);
+            db_store('last_position', gps_pos);
+        }
+    }
+    
     // decode buttons from channel values
     if (mavlink.RC_CHANNELS == null) {
         return;
