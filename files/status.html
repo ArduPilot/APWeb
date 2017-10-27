@@ -288,17 +288,26 @@ refresh_camera();
     function motor_test(motornum) {
         var motorpower = document.getElementById("motor_power").value;
         var testtime = document.getElementById("test_time").value;
-        mavlink_command_long_send(MAV_CMD_DO_MOTOR_TEST, 0, motornum, 0, motorpower, testtime);
+        var motorcount = 0;
+        if (motornum == 0) {
+            motornum = 1;
+            motorcount = 4;
+        }
+        mavlink_command_long_send(MAV_CMD_DO_MOTOR_TEST, 0, motornum, 0, motorpower, testtime, motorcount);
     }
   </script>
 
-Select motor to test, along with test power level (as a percentage) and test time in seconds.
+Select motor to test, along with test power level (as a percentage)
+and test time in seconds. If you choose "All Motors" then all 4 motors
+will come on in sequence, starting with the front-right motor and
+proceeding clockwise from there.
 
     <p>
     <input type="submit" name="action" value="Front Right" onclick="motor_test(1);">
     <input type="submit" name="action" value="Rear Right " onclick="motor_test(2);">
     <input type="submit" name="action" value="Rear Left"   onclick="motor_test(3);">
     <input type="submit" name="action" value="Front Left"  onclick="motor_test(4);">
+    <input type="submit" name="action" value="All Motors"  onclick="motor_test(0);">
 
     <p>
   Test Power
