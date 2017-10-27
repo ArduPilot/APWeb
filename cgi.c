@@ -649,6 +649,12 @@ static bool setup_standalone(struct cgi_state *cgi)
             cgi->content_length = atoi(&line[16]);
         } else if (strncasecmp(line,"Content-Type: ", 14)==0) {
             cgi->content_type = talloc_strdup(cgi, &line[14]);
+        } else if (strncasecmp(line,"Origin: ", 8)==0) {
+            cgi->origin = talloc_strdup(cgi, &line[8]);
+            if (cgi->check_origin != NULL && !cgi->check_origin(cgi->origin)) {
+                cgi->http_error(cgi, "400 Bad Origin", "",
+                                "request with incorrect origin header");                
+            }
         }
         /* ignore all other requests! */
     }
