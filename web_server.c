@@ -289,7 +289,8 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
         }
 
         // check for new incoming tcp connection
-        if (FD_ISSET(http_socket_fd, &fds)) {
+        if (http_socket_fd != -1 &&
+            FD_ISSET(http_socket_fd, &fds)) {
             int fd = accept(http_socket_fd, NULL,0);
             if (fd == -1) continue;
         
@@ -305,7 +306,8 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
         }
 
         // check for incoming UDP packet (broadcast)
-        if (FD_ISSET(udp_socket_fd, &fds)) {
+        if (udp_socket_fd != -1 &&
+            FD_ISSET(udp_socket_fd, &fds)) {
             // we have data pending
             uint8_t buf[300];
             ssize_t nread = read(udp_socket_fd, buf, sizeof(buf));
@@ -315,14 +317,13 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
             }
         }
 
-        if (FD_ISSET(fc_udp_in_fd, &fds) || true) {
+        if (fc_udp_in_fd != -1 &&
+            FD_ISSET(fc_udp_in_fd, &fds)) {
             // we have data pending
             uint8_t buf[3000];
             fc_addrlen = sizeof(fc_addr);
             ssize_t nread = recvfrom(fc_udp_in_fd, buf, sizeof(buf), MSG_DONTWAIT, (struct sockaddr*)&fc_addr, &fc_addrlen);
-            if (nread <= 0) {
-                /* printf("Read error from flight controller\n"); */
-            } else {
+            if (nread > 0) {
                 mavlink_message_t msg;
                 mavlink_status_t status;
                 for (uint16_t i=0; i<nread; i++) {
@@ -337,7 +338,7 @@ static void select_loop(int http_socket_fd, int udp_socket_fd)
         }
 
         // check for incoming bytes from flight controller
-        if (serial_port_fd != -1 ||
+        if (serial_port_fd != -1 &&
             FD_ISSET(serial_port_fd, &fds)) {
             uint8_t buf[200];
             ssize_t nread = read(serial_port_fd, buf, sizeof(buf));
