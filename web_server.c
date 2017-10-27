@@ -80,8 +80,8 @@ static int sock_buf_destroy(struct sock_buf *sock)
     }
 
     lock_state();
+    web_debug(3,"closing fd %d num_sockets_open=%d\n", sock->fd, num_sockets_open);
     num_sockets_open--;
-    web_debug(4,"closing fd %d num_sockets_open=%d\n", sock->fd, num_sockets_open);
     unlock_state();
     
     close(sock->fd);
