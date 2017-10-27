@@ -421,8 +421,8 @@ static void set_ssid(struct template_state *tmpl, const char *name, const char *
 
     snx_nvram_integer_set("WIFI_DEV", "AP_AUTH_MODE", auth_mode);
     snx_nvram_integer_set("WIFI_DEV", "AP_CHANNEL_INFO", ap_channel);
-    snx_nvram_string_set("WIFI_DEV", "AP_SSID_INFO", ssid);
-    snx_nvram_string_set("WIFI_DEV", "AP_KEY_INFO", password);
+    snx_nvram_string_set("WIFI_DEV", "AP_SSID_INFO", __DECONST(char *,ssid));
+    snx_nvram_string_set("WIFI_DEV", "AP_KEY_INFO", __DECONST(char *,password));
 
     sock_printf(tmpl->sock, "Set SSID and password");
 }
