@@ -15,7 +15,7 @@ function set_last_pos(pos) {
   handle downloaded MGA data
 */
 function handle_mga_data(data) {
-    var utc_sec = new Date().getTime() / 1000;
+    var utc_sec = get_utc_sec();
     var new_data = { timestamp : utc_sec, data : data };
     db_store("mga_data", new_data);
     set_mga_data(new_data);
@@ -34,8 +34,10 @@ function download_mga_data() {
 */
 function set_mga_data(data) {
     console.log("mga_data length " + data.data.byteLength);
-    var utc_sec = new Date().getTime() / 1000;
-    if (data.timestamp > utc_sec + 60*60*24*7) {
+    var utc_sec = get_utc_sec();
+    var age_days = (utc_sec - data.timestamp) / (60*60*24);
+    console.log("mga data age: " + age_days);
+    if (age_days > 2) {
         download_mga_data();
     }
     var formData = new FormData();
@@ -64,7 +66,7 @@ function check_mga_status(json) {
         return;
     }
     page_fill_json_html(mga_status);
-    var utc_sec = new Date().getTime() / 1000;
+    var utc_sec = get_utc_sec();
     if (mga_status.offline_cache_size > 0 &&
         (last_pos == null || sent_last_pos)) {
         // its all up to date, don't send it the data
