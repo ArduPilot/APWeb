@@ -330,6 +330,7 @@ function ajax_json_poll(url, callback, refresh_ms=1000) {
             var json = JSON.parse(responseText);
             return callback(json);
         } catch(e) {
+            return true;
         }
         /* on bad json keep going */
         return true;
