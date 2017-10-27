@@ -179,6 +179,7 @@ Core system information<p>
   <tr><td>  
       <table class="values">
         <tr><th>Variable</th><th>Value</th></tr>
+        <tr><td>Status</td><td><div id="rc_ok"></div></td></tr>
         <tr><td>Channels</td><td><div name="MAVLINK:RC_CHANNELS:chancount"></div></td></tr>
         <tr><td>Chan1</td><td><div name="MAVLINK:RC_CHANNELS:chan1_raw"></div></td></tr>
         <tr><td>Chan2</td><td><div name="MAVLINK:RC_CHANNELS:chan2_raw"></div></td></tr>
@@ -418,14 +419,24 @@ function mavlink_callback(mavlink) {
     var chan6 = mavlink.RC_CHANNELS.chan6_raw;
     var chan7 = mavlink.RC_CHANNELS.chan7_raw;
     var left_button, right_button, left_shoulder_button, right_shoulder_button, power_button;
+    var rc_ok = (mavlink.SYS_STATUS.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_RC_RECEIVER) != 0;
+    var pressed_str = { false: "off", true: '<b style="color:green">on</b>' }
+
     right_button = (chan6 > 1800);
     left_button = (chan5 > 2050) || (chan5 > 1050 && chan5 < 1150);
 
     var bits = Math.round((chan7 - 1000) / 100);
-    left_shoulder_button = ((bits & 1) != 0);
-    right_shoulder_button = ((bits & 2) != 0);
-    power_button = ((bits & 4) != 0);
-    var pressed_str = { false: "off", true: '<b style="color:green">on</b>' }
+    if (chan7 < 1000 || !rc_ok) {
+        left_shoulder_button = false;
+        right_shoulder_button = false;
+        power_button = false;
+        document.getElementById("rc_ok").innerHTML = '<b style="color:red">OFF</b>';
+    } else {
+        left_shoulder_button = ((bits & 1) != 0);
+        right_shoulder_button = ((bits & 2) != 0);
+        power_button = ((bits & 4) != 0);
+        document.getElementById("rc_ok").innerHTML = '<b style="color:green">OK</b>';
+    }
     
     document.getElementById("left_button").innerHTML = pressed_str[left_button];
     document.getElementById("right_button").innerHTML = pressed_str[right_button];
