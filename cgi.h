@@ -41,10 +41,12 @@ struct cgi_state {
                        const char *err, const char *header, const char *info);
     void (*download)(struct cgi_state *cgi, const char *path);
     void (*put)(struct cgi_state *cgi, const char *name, const char *value);
+    bool (*check_origin)(const char *origin);
 
     /* data */
     struct cgi_var *variables;
     struct template_state *tmpl;
+    const char *origin;
     char *content_type;
     unsigned long content_length;
     int request_post;

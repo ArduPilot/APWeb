@@ -17,6 +17,9 @@ static int debug_level;
 static int serial_port_fd = -1;
 static int fc_udp_in_fd = -1;
 
+// public web-site that will be allowed. Can be edited with NVRAM editor
+static const char *public_origin = "fly.example.com";
+
 struct sockaddr_in fc_addr;
 socklen_t fc_addrlen;
 
@@ -212,6 +215,75 @@ static void connection_process(struct connection_state *c)
     connection_destroy(c);
 }
 
+/*
+  check origin header to prevent attacks by javascript in other web pages
+ */
+static bool check_origin(const char *origin)
+{
+    if (strcmp(origin, "http://192.168.99.1") == 0) {
+        // always accept
+        return true;
+    }
+    // also allow file:// URLs which produce a 'null' origin
+    if (strcmp(origin, "null") == 0) {
+        return true;
+    }
+    char *allowed_origin;
+#ifdef SYSTEM_FREERTOS
+    unsigned origin_length = 0;
+    if (snx_nvram_get_data_len("SkyViper", "AllowedOrigin", &origin_length) != NVRAM_SUCCESS) {
+        return false;
+    }
+    allowed_origin = talloc_zero_size(NULL, origin_length);
+    if (allowed_origin == NULL) {
+        return false;
+    }
+    if (snx_nvram_string_get("SkyViper", "AllowedOrigin", allowed_origin) != NVRAM_SUCCESS) {
+        talloc_free(allowed_origin);
+        return false;
+    }
+#else
+    allowed_origin = talloc_zero_size(NULL, 1);
+#endif
+    // check for wildcard allowed origin
+    if (strcmp(allowed_origin, "*") == 0) {
+        talloc_free(allowed_origin);
+        return true;
+    }
+
+    // allow for http:// or https://
+    if (strncmp(origin, "http://", 7) == 0) {
+        origin += 7;
+    } else if (strncmp(origin, "https://", 8) == 0) {
+        origin += 8;
+    } else {
+        console_printf("Denied origin protocol: [%s]\n", origin);
+        talloc_free(allowed_origin);
+        return false;
+    }
+    
+    if (strcmp(allowed_origin, origin) != 0) {
+        console_printf("Denied origin: [%s] allowed: [%s]\n", origin, allowed_origin);
+        talloc_free(allowed_origin);
+        return false;
+    }
+    talloc_free(allowed_origin);
+    return true;
+}
+
+/*
+  setup AllowedOrigin if not set already
+ */
+static void setup_origin(const char *origin)
+{
+#ifdef SYSTEM_FREERTOS
+    unsigned origin_length = 0;
+    if (snx_nvram_get_data_len("SkyViper", "AllowedOrigin", &origin_length) != NVRAM_SUCCESS ||
+        origin_length == 0) {
+        snx_nvram_string_set("SkyViper", "AllowedOrigin", __DECONST(char *,origin));
+    }
+#endif
+}
 
 /*
   task for web_server
@@ -238,6 +310,8 @@ static void *web_server_connection_process(void *arg)
         connection_destroy(c);
         return NULL;
     }
+
+    c->cgi->check_origin = check_origin;
 
     connection_process(c);
     return NULL;
@@ -492,6 +566,9 @@ int main(int argc, char *argv[])
     const char *usage = "Usage: web_server -p http_port -b baudrate -s serial_port -d debug_level -u -f fc_udp_in";
     bool do_udp_broadcast = 0;
     int fc_udp_in_port = -1;
+
+    // setup default allowed origin
+    setup_origin(public_origin);
 
     while ((opt=getopt(argc, argv, "p:s:b:hd:uf:")) != -1) {
         switch (opt) {
