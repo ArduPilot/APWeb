@@ -430,6 +430,7 @@ static const struct mime_type {
     {".txt",  "text/plain", MIME_TYPE_TEXT_PLAIN},
     {".html", "text/html;charset=UTF-8",  MIME_TYPE_TEXT_HTML},
     {".mp4",  "video/mp4",  MIME_TYPE_VIDEO_MP4},
+    {".avi",  "video/avi",  MIME_TYPE_VIDEO_AVI},
     {".bin",  "data",       MIME_TYPE_UNKNOWN},
     {".svg",  "image/svg+xml", MIME_TYPE_IMAGE_SVG},
     {".js",   "application/javascript", MIME_TYPE_JAVASCRIPT},
