@@ -194,12 +194,12 @@ function refresh_ms() {
 }
 
 function simple_accel_cal_callback(result) {
+    var color = "red";
     if (result == 0) {
         result = "calibration successful";
         color = "green";
     } else {
         result = "calibration failed: " + result;
-        color = "red";
     }
     set_message_color("simple_accel_message", color, result);
 }
@@ -220,6 +220,7 @@ function six_axis_accel_cal_continue() {
 
 function six_axis_accel_cal_callback(result) {
     six_axis_running = false;
+    var color = "red";
     if (result == 0) {
         // wait for level
         six_axis_stage = 1;
@@ -228,7 +229,6 @@ function six_axis_accel_cal_callback(result) {
         color = "blue";
     } else {
         result = "calibration failed: " + result;
-        color = "red";
         document.getElementById("continue_div").style.display = "none";
     }
     set_message_color("six_axis_accel_message", color, result);
@@ -243,6 +243,7 @@ function six_axis_accel_cal() {
 }
 
 function mag_cal_callback(result) {
+    var color = "red";
     if (result == 0) {
         // wait for level
         six_axis_stage = 1;
@@ -252,7 +253,6 @@ function mag_cal_callback(result) {
         mag_completion_pct = -1;
     } else {
         result = "calibration failed: " + result;
-        color = "red";
         document.getElementById("mag_div").style.display = "none";
     }
     set_message_color("mag_message", color, result);    
