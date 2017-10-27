@@ -26,7 +26,8 @@ Card Size: <b id="disk_total_gb"></b>&nbsp;GByte<br>
 Card Free: <b id="disk_free_gb"></b>&nbsp;GByte<br>
 Card Label: <b id="disk_label"></b><br>
 
-<p><input type="submit" name="action" value="Refresh" onclick="refresh();"><br>
+<p><input type="submit" name="action" value="Refresh" onclick="refresh();">
+<input type="submit" name="action" value="Delete All" onclick="delete_all();"><br>
 
 <hr>
 <p><a href="index.html">home</a>
@@ -141,6 +142,11 @@ Card Label: <b id="disk_label"></b><br>
         list_directory(current_directory);
     }
 
+    function delete_all() {
+        console.log("deleting: " + file_list);
+        command_send("file_unlink(" + file_list.join() + ")", { "onload" : refresh });
+    }
+                                                 
     list_directory(current_directory);
 </script>
 
