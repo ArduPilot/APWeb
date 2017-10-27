@@ -133,6 +133,7 @@ Core system information<p>
         <tr><th>Variable</th><th>Value</th></tr>
         <tr><td>FixType</td><td><div name="MAVLINK:GPS_RAW_INT:fix_type"></div></td></tr>
         <tr><td>Numsats</td><td><div name="MAVLINK:GPS_RAW_INT:satellites_visible"></div></td></tr>
+        <tr><td>EKF Status</td><td><div id="EKF_GPS_STATUS"></div></td></tr>
         <tr><td>Latitude (GPS)</td><td><div name="MAVLINK:GPS_RAW_INT:lat"></div></td></tr>
         <tr><td>Longitude (GPS)</td><td><div name="MAVLINK:GPS_RAW_INT:lon"></div></td></tr>
         <tr><td>Altitude (AMSL)</td><td><div name="MAVLINK:GPS_RAW_INT:alt"></div></td></tr>
@@ -388,6 +389,16 @@ function mavlink_callback(mavlink) {
         return "0" + v;
     }
 
+    if (mavlink.EKF_STATUS_REPORT != null) {
+        var flags = mavlink.EKF_STATUS_REPORT.flags;
+        var d = document.getElementById("EKF_GPS_STATUS");
+        var h = '<b style="color:red">bad</b>';
+        if ((flags & 0x30) == 0x30) {
+            h = '<b style="color:green">good</b>';
+        }
+        d.innerHTML = h;
+    }
+    
     if (mavlink.STATUSTEXT != null) {
         if (mavlink.STATUSTEXT._seq != last_statustext_seq) {
             last_statustext_seq = mavlink.STATUSTEXT._seq;
