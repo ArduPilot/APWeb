@@ -10,6 +10,15 @@ var MAV_CMD_PREFLIGHT_CALIBRATION = 241;
 var MAV_CMD_ACCELCAL_VEHICLE_POS = 42429;
 var MAV_CMD_DO_START_MAG_CAL = 42424;
 
+var MAV_SEVERITY_EMERGENCY = 0;
+var MAV_SEVERITY_ALERT = 1;
+var MAV_SEVERITY_CRITICAL = 2;
+var MAV_SEVERITY_ERROR = 3;
+var MAV_SEVERITY_WARNING = 4;
+var MAV_SEVERITY_NOTICE = 5;
+var MAV_SEVERITY_INFO = 6;
+var MAV_SEVERITY_DEBUG = 7;
+
 // scaling and numdigits table for variables, by regular expression
 const scaling = { 'RAW_IMU:.acc' : [9.81 * 0.001, 3],
                   'GPS_RAW_INT:l..' : [1.0e-7, 7],
@@ -236,6 +245,15 @@ function mavlink_message_send() {
 function mavlink_command_long_send() {
     var args = Array.prototype.slice.call(arguments);
     var mavcmd = "mavlink_message_send(COMMAND_LONG,0,0," + args.join() + ")";
+    command_send(mavcmd);
+}
+
+
+/*
+  send a STATUSTEXT for logging
+*/
+function mavlink_statustext(severity, text) {
+    var mavcmd = "mavlink_message_send(STATUSTEXT," + severity + "," + text + ")";
     command_send(mavcmd);
 }
 
