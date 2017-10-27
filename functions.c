@@ -508,6 +508,7 @@ static void handle_file_upload(struct template_state *tmpl, const char *filename
         } else {
             result = "file write failed";
         }
+        f_sync(&fh);
         f_close(&fh);
     } else {
         result = "failed to open file";
