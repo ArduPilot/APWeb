@@ -15,9 +15,12 @@ function create_chart(canvass_name, variables) {
                      yRangeFunction : chart_range };
     charts[canvass_name] = new SmoothieChart(settings);
     for (var i=0; i<variables.length; i++) {
-        chart_lines[variables[i]] = new TimeSeries();
-        charts[canvass_name].addTimeSeries(chart_lines[variables[i]],
-                                           { strokeStyle : colors[i] });
+        if (chart_lines[variables[i]] == null) {
+            chart_lines[variables[i]] = [];
+        }
+        var ts = new TimeSeries();
+        chart_lines[variables[i]].push(ts);
+        charts[canvass_name].addTimeSeries(ts, { strokeStyle : colors[i] });
     }
     charts[canvass_name].streamTo(document.getElementById(canvass_name), 500);
 }

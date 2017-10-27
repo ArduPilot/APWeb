@@ -104,7 +104,9 @@ function fill_mavlink_ids(options={}) {
                     elements[j].innerHTML = value;
                 }
                 if (fname in chart_lines) {
-                    chart_lines[fname].append(new Date().getTime(), value);
+                    for (var j=0; j<chart_lines[fname].length; j++) {
+                        chart_lines[fname][j].append(new Date().getTime(), value);
+                    }
                 }
             }
         }
