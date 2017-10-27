@@ -146,10 +146,15 @@ void sock_printf(struct sock_buf *sock, const char *fmt, ...)
 void connection_destroy(struct connection_state *c)
 {
     talloc_free(c);
+#ifdef SYSTEM_FREERTOS
+    vTaskDelete(NULL);
+#else
     pthread_exit(0);
+#endif
 }
 
 
+#ifndef SYSTEM_FREERTOS
 /*
   write some data to the flight controller
  */
@@ -198,6 +203,7 @@ static void mavlink_broadcast(int fd, mavlink_message_t *msg)
         sendto(fd, buf, len, 0, (struct sockaddr*)&addr, sizeof(addr));
     }
 }
+#endif
 
 /*
   process input on a connection
