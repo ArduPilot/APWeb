@@ -91,8 +91,10 @@ function fill_mavlink_ids(options={}) {
     xhr.onload = function() {
         again();
         var mavlink;
+        var text = xhr.responseText;
+        text = text.replace(/(\r\n|\n|\r)/gm," ");
         try {
-            mavlink = JSON.parse(xhr.responseText);
+            mavlink = JSON.parse(text);
         } catch(e) {
             console.log(e);
             return;
