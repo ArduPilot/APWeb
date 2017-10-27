@@ -430,7 +430,7 @@ static void set_ssid(struct template_state *tmpl, const char *name, const char *
 /*
   get ssid and password
  */
-static void get_ssid(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
+static void get_ssid_info(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
 {
     char ssid[50]="", pass[50]="";
     int mode=0, channel=0;
@@ -962,7 +962,7 @@ void functions_init(struct template_state *tmpl)
     tmpl->put(tmpl, "snapshot", "", snapshot);
     tmpl->put(tmpl, "mjpgvideo", "", mjpg_video);
     tmpl->put(tmpl, "take_picture", "", take_picture);
-    tmpl->put(tmpl, "get_ssid", "", get_ssid);
+    tmpl->put(tmpl, "get_ssid_info", "", get_ssid_info);
     tmpl->put(tmpl, "set_ssid", "", set_ssid);
     tmpl->put(tmpl, "sonix_version", "", sonix_version);
     tmpl->put(tmpl, "file_upload", "", file_upload);
