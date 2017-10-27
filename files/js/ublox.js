@@ -50,9 +50,6 @@ function set_mga_data(data) {
         sent_last_pos = true;
     }
     
-    /* send the date again */
-    set_sonix_date();
-    
     var xhr = createCORSRequest("POST", drone_url + "/ajax/command.json");
     xhr.send(formData);
     setTimeout(poll_ublox_status, mga_poll_period);

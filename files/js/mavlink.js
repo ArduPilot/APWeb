@@ -373,17 +373,26 @@ function set_message_color(id, color, message) {
 }
 
 /*
+  get utc time in seconds
+*/
+function get_utc_sec() {
+    var d = new Date();
+    var dsec = d.getTime() / 1000;
+    return dsec;
+}
+
+/*
   set the date on the sonix board
 */
 function set_sonix_date()
 {
     var d = new Date();
-    var dsec = d.getTime() / 1000;
+    var dsec = get_utc_sec();
     var tz_offset = -d.getTimezoneOffset() * 60;
     d = (dsec+0.5).toFixed(0);
-    command_send("set_time_utc(" + d + "," + tz_offset + ")");
+    var cmd = "set_time_utc(" + d + "," + tz_offset + ")";
+    command_send(cmd);
 }
 
-/* always set the date at connection time */
-set_sonix_date();
-
+// set date every 20s
+setInterval(set_sonix_date(), 20000);
