@@ -124,10 +124,45 @@ Parameter Category:&nbsp
         if (select != null) {
             select.value = value;
         }
+        set_bitoptions(name, value);
+    }
+
+    function set_bitoptions(name, value) {
+        if (param_docs[name] == null || param_docs[name].bitoptions == null) {
+            return;
+        }
+        var bitoptions = param_docs[name].bitoptions;
+        var nbits = bitoptions.length;
+        for (var i=0; i<nbits; i++) {
+            var opt = bitoptions[i];
+            var d = document.getElementById(name + ":BIT:" + opt.bit);
+            if (d != null) {
+                var checked = false;
+                if (value & (1<<opt.bit)) {
+                    checked = true;
+                }
+                d.checked = checked;
+            }
+        }
     }
 
     function change_selection(name, value) {
         if (document.getElementById("input:" + name).value != value) {
+            document.getElementById("input:" + name).value = value;
+            change_param(name, value);
+        }
+    }
+
+    function change_bit(checkbox, name, bit) {
+        var checked = checkbox.checked;
+        var oldvalue = document.getElementById("input:" + name).value;
+        var value = oldvalue;
+        if (checked) {
+            value |= 1<<bit;
+        } else {
+            value &= ~(1<<bit);
+        }
+        if (value != oldvalue) {
             document.getElementById("input:" + name).value = value;
             change_param(name, value);
         }
@@ -175,6 +210,24 @@ Parameter Category:&nbsp
         cell.innerHTML = sel;
     }
 
+    // create a set of checkboxes for bit options
+    function fill_bitoptions(name, row, bitoptions) {
+        var cell = row.cells[2];
+        var sel = cell.innerHTML;
+        var nbits = bitoptions.length;
+        var value = byname[name];
+        for (var i=0; i<nbits; i++) {
+            var opt = bitoptions[i];
+            if (sel != '') {
+                sel += '<br>\n';
+            }
+            var selopt = '<input type="checkbox" id="' + name + ':BIT:' + opt.bit + '" onchange="change_bit(this,\'' + name + '\',' + opt.bit + ');">' + opt.label + '</>';
+            sel += selopt;
+        }
+        cell.innerHTML = sel;
+        set_bitoptions(name, value);
+    }
+
     function fill_param_docs() {
         var table = document.getElementById("param_table");
         var nrows = table.rows.length;
@@ -185,8 +238,12 @@ Parameter Category:&nbsp
             if (pdoc) {
                 tr.cells[3].innerHTML = pdoc.humanName;
                 tr.cells[4].innerHTML = pdoc.documentation;
+                tr.cells[2].innerHTML = '';
                 if (pdoc.values != null) {
                     fill_select_list(name, tr, pdoc.values);
+                }
+                if (pdoc.bitoptions != null) {
+                    fill_bitoptions(name, tr, pdoc.bitoptions);
                 }
             }
         }
@@ -218,15 +275,30 @@ Parameter Category:&nbsp
                 nchildren = p.children.length;
             }
             for (var j=0; j<nchildren; j++) {
-                if (p.children[j].nodeName == "values") {
+                var c = p.children[j];
+                if (c.nodeName == "values") {
                     param_docs[name].values = []
-                    var c = p.children[j];
                     var nvalues = c.children.length;
                     for (var k=0; k<nvalues; k++) {
                         var code = c.children[k].attributes.code.value;
                         var text = c.children[k].innerHTML;
                         param_docs[name].values.push({'code' : code, 'value' : text});
                     }
+                }
+                if (c.nodeName == "field" && c.attributes[0].value == "Bitmask") {
+                    var bmask = c.childNodes[0].nodeValue;
+                    var barray = bmask.split(',');
+                    var nbits = barray.length;
+                    var bitoptions = []
+                    for (var k=0; k<nbits; k++) {
+                        var bopt = barray[k];
+                        var opt = bopt.split(':')
+                        if (opt.length != 2) {
+                            continue;
+                        }
+                        bitoptions.push({"bit" : opt[0], "label" : opt[1]});
+                    }
+                    param_docs[name].bitoptions = bitoptions;
                 }
             }
         }
