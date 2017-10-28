@@ -6,6 +6,9 @@
 #define MAVLINK_SEPARATE_HELPERS
 #define MAVLINK_NO_CONVERSION_HELPERS
 
+// arm processor does not handle misaligned accesses
+#define MAVLINK_ALIGNED_FIELDS 0
+
 #define MAVLINK_SEND_UART_BYTES(chan, buf, len) comm_send_buffer(chan, buf, len)
 
 // allow two mavlink ports

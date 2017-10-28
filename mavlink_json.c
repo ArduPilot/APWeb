@@ -159,45 +159,65 @@ bool mavlink_message_send_args(int argc, char **argv)
             }
             break;
 
-        case MAVLINK_TYPE_UINT8_T:
-            _mav_put_uint8_t(buf, f->wire_offset, strtoul(arg, NULL, 0));
+        case MAVLINK_TYPE_UINT8_T: {
+            uint8_t b = simple_strtoul(arg, NULL, 0);
+            _mav_put_uint8_t(buf, f->wire_offset, b);
             break;
+        }
 
-        case MAVLINK_TYPE_UINT16_T:
-            _mav_put_uint16_t(buf, f->wire_offset, strtoul(arg, NULL, 0));
+        case MAVLINK_TYPE_UINT16_T: {
+            uint16_t b = simple_strtoul(arg, NULL, 0);
+            _mav_put_uint16_t(buf, f->wire_offset, b);
             break;
+        }
 
-        case MAVLINK_TYPE_UINT32_T:
-            _mav_put_uint32_t(buf, f->wire_offset, strtoul(arg, NULL, 0));
+        case MAVLINK_TYPE_UINT32_T: {
+            uint32_t b = simple_strtoul(arg, NULL, 0);
+            _mav_put_uint32_t(buf, f->wire_offset, b);
             break;
+        }
 
-        case MAVLINK_TYPE_UINT64_T:
-            _mav_put_uint64_t(buf, f->wire_offset, strtoull(arg, NULL, 0));
+        case MAVLINK_TYPE_UINT64_T: {
+            uint64_t b = simple_strtoul(arg, NULL, 0);
+            _mav_put_uint64_t(buf, f->wire_offset, b);
             break;
+        }
 
-        case MAVLINK_TYPE_INT8_T:
-            _mav_put_int8_t(buf, f->wire_offset, strtol(arg, NULL, 0));
+        case MAVLINK_TYPE_INT8_T: {
+            int8_t b = simple_strtol(arg, NULL, 0);
+            _mav_put_int8_t(buf, f->wire_offset, b);
             break;
+        }
 
-        case MAVLINK_TYPE_INT16_T:
-            _mav_put_int16_t(buf, f->wire_offset, strtol(arg, NULL, 0));
+        case MAVLINK_TYPE_INT16_T: {
+            int16_t b = strtol(arg, NULL, 0);
+            _mav_put_int16_t(buf, f->wire_offset, b);
             break;
+        }
 
-        case MAVLINK_TYPE_INT32_T:
-            _mav_put_int32_t(buf, f->wire_offset, strtol(arg, NULL, 0));
+        case MAVLINK_TYPE_INT32_T: {
+            int32_t b = strtol(arg, NULL, 0);
+            _mav_put_int32_t(buf, f->wire_offset, b);
             break;
+        }
 
-        case MAVLINK_TYPE_INT64_T:
-            _mav_put_int64_t(buf, f->wire_offset, strtoll(arg, NULL, 0));
+        case MAVLINK_TYPE_INT64_T: {
+            int64_t b = strtol(arg, NULL, 0);
+            _mav_put_int64_t(buf, f->wire_offset, b);
             break;
+        }
 
-        case MAVLINK_TYPE_FLOAT:
-            _mav_put_float(buf, f->wire_offset, atof(arg));
+        case MAVLINK_TYPE_FLOAT: {
+            float b = atof(arg);
+            _mav_put_float(buf, f->wire_offset, b);
             break;
+        }
 
-        case MAVLINK_TYPE_DOUBLE:
-            _mav_put_double(buf, f->wire_offset, atof(arg));
+        case MAVLINK_TYPE_DOUBLE: {
+            double b = atof(arg);
+            _mav_put_double(buf, f->wire_offset, b);
             break;
+        }
         }
     }
 
