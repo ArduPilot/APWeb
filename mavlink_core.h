@@ -14,8 +14,8 @@
 // allow two mavlink ports
 #define MAVLINK_COMM_NUM_BUFFERS 1
 
-#include "generated/mavlink/ardupilotmega/version.h"
-#include "generated/mavlink/mavlink_types.h"
+#include <generated/mavlink/ardupilotmega/version.h>
+#include <generated/mavlink/mavlink_types.h>
 
 extern mavlink_system_t mavlink_system;
 
@@ -39,7 +39,7 @@ void comm_send_ch(mavlink_channel_t chan, uint8_t ch);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 #endif
-#include "generated/mavlink/ardupilotmega/mavlink.h"
+#include <generated/mavlink/ardupilotmega/mavlink.h>
 #ifdef MAVLINK_IGNORE_PACKED_MEMBER_WARNING
 #pragma GCC diagnostic pop
 #endif

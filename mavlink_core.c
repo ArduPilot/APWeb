@@ -29,4 +29,4 @@ void comm_send_ch(mavlink_channel_t chan, uint8_t ch)
     comm_send_buffer(chan, &ch, 1);
 }
 
-#include "generated/mavlink/mavlink_helpers.h"
+#include <generated/mavlink/mavlink_helpers.h>
