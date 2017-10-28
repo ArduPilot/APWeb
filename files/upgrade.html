@@ -58,8 +58,8 @@ reboot. The reboot will take about 15 seconds.<p>
 Choose a file to upload: <input id="ArduPilot:file" type="file" accept=".abin"/><br />
 <input type="submit" value="Upload File" onclick="upload_file('ArduPilot');"/>
 
-<p>
-Current version: <b id="flight_build_date">unknown</b>&nbsp;<b id="flight_custom_version">unknown</b>
+<p>Current version: <b id="flight_build_date">unknown</b>&nbsp;<b id="flight_custom_version">unknown</b><br>
+  Serial Number: <b id="stm32_serial">unknown</b>
 
 <hr/>
 <h2>Upgrade Transmitter Firmware</h2>
@@ -211,6 +211,12 @@ Choose a file to upload: <input id="fs:file" type="file" /><br />
             document.getElementById("flight_build_date").innerHTML = ap_version_year + "-" + ap_version_month + "-" + ap_version_day;
         }
     }
+
+    function set_stm32_id(id) {
+        document.getElementById("stm32_serial").innerHTML = id;
+    }
+
+    command_send("stm32_id()", { onload: set_stm32_id })
 
     setInterval(function() { command_send("mavlink_message(AUTOPILOT_VERSION)", { onload: set_ardupilot_version }) }, 1000);
 </script>

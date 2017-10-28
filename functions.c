@@ -1054,6 +1054,15 @@ static void nvram_set_value(struct template_state *tmpl, const char *name, const
 failed:
     sock_printf(tmpl->sock, "%d", rc);
 }
+
+/*
+  get stm32 ID
+ */
+static void stm32_id(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
+{
+    sock_printf(tmpl->sock, "%s", mavlink_get_stm32_id());
+}
+
 #endif // SYSTEM_FREERTOS
 
 void functions_init(struct template_state *tmpl)
@@ -1078,6 +1087,7 @@ void functions_init(struct template_state *tmpl)
     tmpl->put(tmpl, "nvram_pack_values", "", nvram_pack_values);
     tmpl->put(tmpl, "nvram_set_value", "", nvram_set_value);
     tmpl->put(tmpl, "get_ssid", "", get_ssid);
+    tmpl->put(tmpl, "stm32_id", "", stm32_id);
 #endif // SYSTEM_FREERTOS
 #ifdef _POSIX_VERSION
     posix_functions_init(tmpl);
