@@ -846,21 +846,27 @@ static void nvram_pack_values(struct template_state *tmpl, const char *name, con
 
     while (cfg_cnt--) {
         nvram_cfg_name_data_info_t *cfg = &cfg_name_info[cfg_cnt];
+        unsigned int data_len = 0;
         cfg_name = cfg->name;
+        if (snx_nvram_get_data_len(pack_name, cfg_name, &data_len) != NVRAM_SUCCESS || data_len == 0) {
+            continue;
+        }
         if (!first) {
             sock_printf(tmpl->sock, ", ");
         }
         first = false;
-        sock_printf(tmpl->sock, "{ \"name\" : \"%s\", \"size\" : %u, ",
-                    cfg_name, cfg->data_info.data_len);
+        sock_printf(tmpl->sock, "{ \"name\" : \"%s\", \"size\" : %u, ", cfg_name, data_len);
         void *cfg_data = NULL;
 
-        cfg_data = talloc_zero_size(cfg_name_info, cfg->data_info.data_len);
+        cfg_data = talloc_zero_size(cfg_name_info, data_len);
         if (cfg_data == NULL) {
             continue;
         }
         cfg->data_info.data = cfg_data;
         snx_nvram_get_immediately(pack_name, cfg_name, &cfg->data_info);
+        if (cfg->data_info.data_type == NVRAM_DT_BIN_RAW) {
+            snx_nvram_binary_get(pack_name, cfg_name, cfg_data);
+        }
 
         switch (cfg->data_info.data_type) {
         case NVRAM_DT_STRING:
@@ -891,6 +897,7 @@ static void nvram_pack_values(struct template_state *tmpl, const char *name, con
             sock_printf(tmpl->sock, "\"type\" : \"unknown\" }");
             break;
         }
+        talloc_free(cfg_data);
         cfg_data = NULL;
     }
 
