@@ -251,6 +251,19 @@ static bool check_origin(const char *origin)
         // always accept
         return true;
     }
+
+#ifdef SYSTEM_FREERTOS
+    // could be a different local IP
+    char local_ip[16];
+    get_local_ip(local_ip, sizeof(local_ip));
+    if (strncmp(origin, "http://", 7) == 0 &&
+        strcmp(origin+7, local_ip) == 0) {
+        return true;
+    }
+#else
+    // TODO: check all IPs on all interfaces?
+#endif
+
     // also allow file:// URLs which produce a 'null' origin
     if (strcmp(origin, "null") == 0) {
         return true;
