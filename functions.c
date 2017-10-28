@@ -452,12 +452,15 @@ static void handle_sonix_upgrade(struct template_state *tmpl, const char *filena
     set_upload_message("checking firmware MD5");
     set_upload_progress(1);
     if (check_fw_md5((const unsigned char *)filedata, size)) {
-        set_upload_message("Good MD5 on image - upgrading. Please reconnect WiFi in 30 seconds");
+        set_upload_message("Good MD5 on image");
+        mdelay(1000);
         set_upload_progress(100);
         // give time for UI to update
+        set_upload_message("starting upgrade");
         mdelay(3000);
         fw_upgrade(__DECONST(char*,filedata), size);
-        set_upload_message("rebooting");
+        set_upload_message("success - rebooting");
+        mdelay(3000);
     } else {
         set_upload_message("Bad MD5 on image");
     }
