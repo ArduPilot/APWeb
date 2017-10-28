@@ -445,6 +445,18 @@ static void get_ssid_info(struct template_state *tmpl, const char *name, const c
 }
 
 /*
+  get ssid
+ */
+static void get_ssid(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
+{
+    char ssid[50]="";
+    
+    snx_nvram_string_get("WIFI_DEV", "AP_SSID_INFO", ssid);
+
+    sock_printf(tmpl->sock, "%s", ssid);
+}
+
+/*
   handle sonix fw update
  */
 static void handle_sonix_upgrade(struct template_state *tmpl, const char *filename, const char *filedata, uint32_t size)
@@ -998,6 +1010,7 @@ void functions_init(struct template_state *tmpl)
     tmpl->put(tmpl, "nvram_pack_list", "", nvram_pack_list);
     tmpl->put(tmpl, "nvram_pack_values", "", nvram_pack_values);
     tmpl->put(tmpl, "nvram_set_value", "", nvram_set_value);
+    tmpl->put(tmpl, "get_ssid", "", get_ssid);
 #endif // SYSTEM_FREERTOS
     tmpl->put(tmpl, "format_storage", "", format_storage);
     tmpl->put(tmpl, "factory_reset", "", factory_reset);
