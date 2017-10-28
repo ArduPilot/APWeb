@@ -957,7 +957,7 @@ static void nvram_pack_values(struct template_state *tmpl, const char *name, con
             break;
 
         case NVRAM_DT_BIN_RAW:
-            sock_printf(tmpl->sock, "\"type\" : \"file\" }");
+            sock_printf(tmpl->sock, "\"type\" : \"file\", \"value\" : \"MD5:%s\" }\n", (const char *)md5_string(tmpl, cfg_data, data_len));
             break;
             
         case NVRAM_DT_INT:
