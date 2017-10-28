@@ -14,8 +14,8 @@
 // allow two mavlink ports
 #define MAVLINK_COMM_NUM_BUFFERS 1
 
-#include "generated/mavlink/ardupilotmega/version.h"
-#include "generated/mavlink/mavlink_types.h"
+#include <generated/mavlink/ardupilotmega/version.h>
+#include <generated/mavlink/mavlink_types.h>
 
 extern mavlink_system_t mavlink_system;
 
@@ -34,7 +34,7 @@ void comm_send_ch(mavlink_channel_t chan, uint8_t ch);
 #if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 9)
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 #endif
-#include "generated/mavlink/ardupilotmega/mavlink.h"
+#include <generated/mavlink/ardupilotmega/mavlink.h>
 #pragma GCC diagnostic pop
 
 // alias for link to flight controller
