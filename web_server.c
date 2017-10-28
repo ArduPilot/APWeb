@@ -39,7 +39,7 @@ static int num_sockets_open;
 static int debug_level;
 
 // public web-site that will be allowed. Can be edited with NVRAM editor
-static const char *public_origin = "fly.example.com";
+static const char *public_origin = "fly.sky-viper.com";
 
 #ifndef bool
 #define bool int
