@@ -925,22 +925,30 @@ static void nvram_set_value(struct template_state *tmpl, const char *name, const
     }
     uint32_t i;
     int dtype = -1;
+    nvram_cfg_name_data_info_t *cfg = NULL;
+    
     for (i=0; i<cfg_cnt; i++) {
-        nvram_cfg_name_data_info_t *cfg = &cfg_name_info[i];
-        void *cfg_data = NULL;
-
-        cfg_data = talloc_zero_size(cfg_name_info, cfg->data_info.data_len);
-        if (cfg_data == NULL) {
-            continue;
-        }        
-        cfg->data_info.data = cfg_data;
-        snx_nvram_get_immediately(pack_name, cfg_name, &cfg->data_info);
-        dtype = cfg->data_info.data_type; 
+        cfg = &cfg_name_info[i];
+        if (strcmp(cfg_name, cfg->name) == 0) {
+            break;
+        }
     }
 
+    if (i == cfg_cnt) {
+        goto failed;
+    }
+
+    void *cfg_data = talloc_zero_size(cfg_name_info, cfg->data_info.data_len);
+    if (cfg_data == NULL) {
+        goto failed;
+    }
+    cfg->data_info.data = cfg_data;
+    snx_nvram_get_immediately(pack_name, cfg_name, &cfg->data_info);
+    dtype = cfg->data_info.data_type; 
+    
     switch (dtype) {
     case NVRAM_DT_STRING:
-        rc = snx_nvram_string_set(pack_name, cfg_name, svalue);
+        rc = snx_nvram_string_set(pack_name, cfg_name, __DECONST(char *,svalue));
         break;
     case NVRAM_DT_INT:
         rc = snx_nvram_integer_set(pack_name, cfg_name, atoi(svalue));
