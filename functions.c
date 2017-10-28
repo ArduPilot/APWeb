@@ -1110,6 +1110,14 @@ static void get_serial_number(struct template_state *tmpl, const char *name, con
 }
 
 /*
+  get config vars from WIFI.TXT
+ */
+static void get_config_vars(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
+{
+    get_config_vars_json(tmpl->sock);
+}
+
+/*
   get ambient light
  */
 static void get_ambient_light(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
@@ -1169,6 +1177,7 @@ void functions_init(struct template_state *tmpl)
     tmpl->put(tmpl, "stm32_id", "", stm32_id);
     tmpl->put(tmpl, "play_tx_tune", "", play_tx_tune);
     tmpl->put(tmpl, "get_serial_number", "", get_serial_number);
+    tmpl->put(tmpl, "get_config_vars", "", get_config_vars);
     tmpl->put(tmpl, "get_ambient_light", "", get_ambient_light);
     tmpl->put(tmpl, "get_isp_offset", "", get_isp_offset);
     tmpl->put(tmpl, "set_isp_offset", "", set_isp_offset);
