@@ -483,12 +483,18 @@ static void get_ssid(struct template_state *tmpl, const char *name, const char *
  */
 static void handle_sonix_upgrade(struct template_state *tmpl, const char *filename, const char *filedata, uint32_t size)
 {
+    const char *recovery_file = "FIRMWARE_660R.bin";
     set_upload_message("checking firmware MD5");
     set_upload_progress(1);
     if (check_fw_md5((const unsigned char *)filedata, size)) {
         set_upload_message("Good MD5 on image");
         mdelay(1000);
         set_upload_progress(100);
+        // write to FIRMWARE_660R.bin for recovery
+        if (dev_write_file(recovery_file, (const uint8_t *)filedata, size) != 0) {
+            set_upload_message("Failed to write image to microSD - please check SD card");
+            return;
+        }
         // give time for UI to update
         set_upload_message("starting upgrade");
         mdelay(3000);
