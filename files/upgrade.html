@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html manifest="manifest.appcache">
   <head>
-    <title>ArduPilot</title>
+    <title>SkyViper</title>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="css/styles.css">
     <script type="text/javascript" src="js/config.js"></script>
@@ -10,7 +10,7 @@
   </head>
 <body>
 
-<p><a href="index.html"><img src="images/main_logo.png" alt="ArduPilot"></a></p>
+<p><a href="index.html"><img src="images/main_logo.svg" alt="SkyViper"></a></p>
 
 <br><div id="uploadMessage"></div>
 
@@ -25,7 +25,11 @@
 
 Upgrade the firmware on your vehicle.
 
-<p>You can get the latest firmware releases from <a href="http://firmware.ardupilot.org/">http://firmware.ardupilot.org/</a>
+<p>There are 3 firmwares - the "Sonix" firmware is for the video and
+wifi board. The ArduPilot firmware is for the flight controller and
+the transmitter firmware is for your transmitter.
+
+<p>You can get the latest firmware releases from <a href="http://firmware.sky-viper.com/latest/">http://firmware.sky-viper.com/latest/</a>
 
 <hr/>
 <h2>Upgrade Sonix Firmware</h2>
@@ -33,7 +37,7 @@ Upgrade the firmware on your vehicle.
 After uploading the new Sonix firmware (which should have a file
 extension of ".bin"), the Sonix board will automatically reboot and
 start the new firmware. You will need to reconnect to the WiFi access
-point on the ArduPilot after the reboot.<p>
+point on the SkyViper after the reboot.<p>
 
 Choose a file to upload: <input id="sonix:file" type="file" accept=".bin"/><br />
 <input type="submit" value="Upload File" onclick="upload_file('sonix');"/>
