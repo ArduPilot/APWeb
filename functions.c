@@ -1056,6 +1056,43 @@ failed:
 }
 
 /*
+  play a tune on the TX buzzer
+ */
+static void play_tx_tune(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
+{
+    if (argc < 1) {
+        return;
+    }
+
+    uint8_t data[96];
+    uint8_t len = 0;
+    uint8_t i;
+    
+    memset(data, 0, sizeof(data));
+
+    for (i=0; i<argc; i++) {
+        uint32_t len2 = strlen(argv[i]);
+        if (len2 + len + 1 > 90) {
+            console_printf("tune too long: %u\n", len2+len);
+            return;
+        }
+        if (len > 0) {
+            data[len++] = ',';
+        }
+        strcpy((char *)&data[len], argv[i]);
+        len += len2;
+    }
+
+    console_printf("Sending tune '%s'\n", (const char *)data);
+    
+    mavlink_msg_data96_send(MAVLINK_COMM_FC,
+                            TX_PLAY_DATA_TYPE,
+                            len,
+                            data);
+}
+
+
+/*
   get stm32 ID
  */
 static void stm32_id(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
@@ -1063,6 +1100,39 @@ static void stm32_id(struct template_state *tmpl, const char *name, const char *
     sock_printf(tmpl->sock, "%s", mavlink_get_stm32_id());
 }
 
+/*
+  get ambient light
+ */
+static void get_ambient_light(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
+{
+    int v = 0;
+    snx_isp_absy_get(&v);
+    sock_printf(tmpl->sock, "%d", v);
+}
+
+/*
+  get ISP offset
+ */
+static void get_isp_offset(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
+{
+    int v = 0;
+    snx_isp_offset_get(&v);
+    sock_printf(tmpl->sock, "%d", v);
+}
+
+/*
+  set ISP offset
+ */
+static void set_isp_offset(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
+{
+    if (argc > 0) {
+        int v = atoi(argv[0]);
+        if (v > 0) {
+            snx_isp_offset_set(&v);
+            snx_nvram_integer_set("SkyViper", __DECONST(char *, "AE_OFFSET"), v);
+        }
+    }
+}
 #endif // SYSTEM_FREERTOS
 
 void functions_init(struct template_state *tmpl)
@@ -1088,6 +1158,10 @@ void functions_init(struct template_state *tmpl)
     tmpl->put(tmpl, "nvram_set_value", "", nvram_set_value);
     tmpl->put(tmpl, "get_ssid", "", get_ssid);
     tmpl->put(tmpl, "stm32_id", "", stm32_id);
+    tmpl->put(tmpl, "play_tx_tune", "", play_tx_tune);
+    tmpl->put(tmpl, "get_ambient_light", "", get_ambient_light);
+    tmpl->put(tmpl, "get_isp_offset", "", get_isp_offset);
+    tmpl->put(tmpl, "set_isp_offset", "", set_isp_offset);
 #endif // SYSTEM_FREERTOS
 #ifdef _POSIX_VERSION
     posix_functions_init(tmpl);

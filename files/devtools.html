@@ -1,0 +1,185 @@
+<!DOCTYPE HTML>
+<html manifest="manifest.appcache">
+  <head>
+    <title>SkyViper</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="css/styles.css">
+    <script type="text/javascript" src="js/config.js"></script>
+    <script type="text/javascript" src="js/cors.js"></script>
+    <script type="text/javascript" src="js/smoothie.min.js"></script>
+    <script type="text/javascript" src="js/mavlink.js"></script>
+    <script type="text/javascript" src="js/tabs.js"></script>
+  </head>
+<body>
+
+<p><a href="index.html"><img src="images/main_logo.svg" alt="SkyViper"></a></p>
+  
+<div class="tab">
+  <button class="tablinks" onclick="openTab(event, 'TX Tunes')" id="defaultTab">TX Tunes</button>
+  <button class="tablinks" onclick="openTab(event, 'Video Adjust')">Video Adjust</button>
+</div>
+
+<div id="TX Tunes" class="tabcontent">
+
+<h1>TX Tunes</h1>
+
+This allows you to test new tunes for the transmitter. Press the
+button to play a tune. Edit the string description of the tune in the
+right column to change the tune.
+
+<p>Once you have a change you want to make permanent then the tune will
+need to be changed in the StreamingGPSTransmitter source code.
+
+<p>There is a general guide to the RTTTL
+  language <a href="https://en.wikipedia.org/wiki/Ring_Tone_Transfer_Language">on
+    Wikipedia</a>, although we have not implemented all aspects of it in
+  the transmitter.
+
+<p>Here are the key elements of what we implement
+
+  <ul>
+     <li>The preamble before  colon sets the defaults for the tune
+    <li>b=NNN is the "beats per minute" setting, which is the primary
+      speed control
+    <li>o=N is the default octave. Higher numbers are higher frequency
+    <li>d=N is the default note duration
+    <li>Each note has a letter in a, b, c, d, e, f, g
+    <li>Before the note you can put a duration divider. A larger
+    number makes the note shorter
+    <li>After each note you can put an octave for the note
+    <li>A # makes the note a sharp (half octave up)
+    <li>A . make the note 50% longer
+    <li>Optionally use commas between notes
+  </ul>
+  
+<p><div id="message"></div>
+
+<p>
+    
+<table id="tune_table" class="parameters">
+  <tr><th>Name</th><th style="text-align: left;">Tune</th></tr>
+</table>
+
+</div>
+
+
+<div id="Video Adjust" class="tabcontent">
+
+<h1>Video Adjust</h1>
+
+This allows you to adjust the video parameters on the Sonix board.
+
+<p>Ambient Light <b id="ambient_light">unknown</b><br>
+Current AE Offset <b id="isp_offset">unknown</b><br>
+
+<p><div id="video_message"></div>
+
+<p>Set AE Offset <input type="text" id="new_isp_offset" value="0" onchange="change_isp_offset();"><br>
+
+<br><input type="submit" name="action" value="Refresh" onclick="refresh_camera();" />
+<input type="checkbox" id="auto_refresh" onchange="refresh_camera();">Auto Image Refresh<br>
+
+<p><img src="/ajax/snapshot.jpg" alt="snapshot" id="snapshot">
+
+</div>
+
+<hr>
+<p><a href="index.html">home</a>
+
+<script type="text/javascript">
+
+var default_tunes = {
+    "Startup"    : "d=8,o=6,b=480:a,d7,c7,a,d7,c7,a,d7,16d7,16c7,16d7,16c7,16d7,16c7,16d7,16c7",
+    "Error"      : "d=4,o=6,b=400:8a,8a,8a,p,a,a,a,p",
+    "LinkUp"     : "d=4,o=6,b=400:8e,8e,a",
+    "Search"     : "d=1,o=4,b=2048:b",
+    "Loiter"     : "d=4,o=6,b=400:8d,8d,a",
+    "AltHold"    : "d=4,o=6,b=400:8e,8e,8e,c",
+    "RTL"        : "d=4,o=6,b=400:8c,8c,8c,d,8c,8c,8c,d",
+    "LAND"       : "d=4,o=6,b=400:d,4b,4b,4b,4b",
+    "OtherMode"  : "d=4,o=6,b=400:4c,4b,4a",
+    "BattWarn"   : "d=4,o=1,b=512:d,d,d,d",
+    "Inactivity" : "d=4,o=6,b=512:8c,8c,8c,8c,8c",
+    "Video"      : "d=4,o=6,b=600:8b",
+    "Disarm"     : "d=4,o=6,b=400:8c,p,8c",
+};
+
+function fill_default_tunes() {
+    var table = document.getElementById("tune_table");
+
+    // delete any existing rows
+    var nrows = table.rows.length;
+    for (var i=nrows-1; i>0; i--) {
+        table.deleteRow(i);
+    }
+        
+    for (var key in default_tunes) {
+        var rownum = table.rows.length;
+        var row = table.insertRow(table.rows.length);
+        var tune = default_tunes[key];
+        var button = '<input type="submit" value="' + key + '" onclick="play_tune(\'' + key + '\');">';
+        row.insertCell(0).innerHTML = button;
+        console.log(button);
+        var c1 = row.insertCell(1);
+        c1.innerHTML = '<input style="text-align: left;" type="text" size="90" class="paramvalue" id="input:' + key + '" value="' + tune + '">';
+    }
+}
+
+var current_tab = "TX Tunes";
+
+// called on tab change
+function tab_clicked(tab) {
+    if (tab == "Video Adjust") {
+        setTimeout(refresh_camera,1000);        
+    }
+    current_tab = tab;
+}
+
+function play_tune(name) {
+    var tune = document.getElementById("input:" + name).value;
+    tune = tune.replace(/ /g,'');
+    if (tune[0] != ':') {
+        tune = ":" + tune;
+    }
+    console.log("Playing " + tune);
+    if (tune.length > 90) {
+        set_message_color("message", "red", "Tune too long " + tune.length + " (max is 90)");
+    } else {
+        set_message_color("message", "blue", "Playing " + name);
+        command_send("play_tx_tune(" + tune + ")");
+    }
+}
+
+function refresh_camera() {
+    var img = document.getElementById("snapshot");
+    new_src = drone_url + "/ajax/snapshot.jpg?" + Math.random();
+    new_type = "img";
+    img.src = new_src;
+    img.type = new_type;
+    console.log(new_src);
+    if (current_tab == "Video Adjust") {
+        if (document.getElementById("auto_refresh").checked) {
+            setTimeout(refresh_camera,250);
+        }
+    }
+}
+
+function change_isp_offset() {
+    var value = document.getElementById("new_isp_offset").value;
+    command_send("set_isp_offset(" + value + ")");
+    set_message_color("video_message", "blue", "Set AE offset to " + value);
+}
+
+fill_default_tunes();
+
+document.getElementById("defaultTab").click();
+
+ajax_json_poll_fill(drone_url + "/ajax/video.json", 1000);
+
+setTimeout(refresh_camera,1000);
+
+</script>
+
+</body>
+</html>
+
