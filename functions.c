@@ -1101,6 +1101,15 @@ static void stm32_id(struct template_state *tmpl, const char *name, const char *
 }
 
 /*
+  get serial number
+ */
+static void get_serial_number(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
+{
+    const unsigned char * mac = wlan_get_get_mac_addr();
+    sock_printf(tmpl->sock, "%02x%02x%02x", mac[3], mac[4], mac[5]);
+}
+
+/*
   get ambient light
  */
 static void get_ambient_light(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
@@ -1159,6 +1168,7 @@ void functions_init(struct template_state *tmpl)
     tmpl->put(tmpl, "get_ssid", "", get_ssid);
     tmpl->put(tmpl, "stm32_id", "", stm32_id);
     tmpl->put(tmpl, "play_tx_tune", "", play_tx_tune);
+    tmpl->put(tmpl, "get_serial_number", "", get_serial_number);
     tmpl->put(tmpl, "get_ambient_light", "", get_ambient_light);
     tmpl->put(tmpl, "get_isp_offset", "", get_isp_offset);
     tmpl->put(tmpl, "set_isp_offset", "", set_isp_offset);
