@@ -331,7 +331,11 @@ static void mavlink_message_send(struct template_state *tmpl, const char *name, 
 static void reboot_companion(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
 {
     console_printf("rebooting ...\n");
+#ifdef SYSTEM_FREERTOS
+    reboot();    
+#else
     __reboot();    
+#endif
 }
 
 extern void snx_nvram_bootup_upgrade(void);
