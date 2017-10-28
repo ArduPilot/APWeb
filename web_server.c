@@ -8,20 +8,27 @@
 #include "web_server.h"
 #include "includes.h"
 #include "web_files.h"
-
+#ifdef SYSTEM_FREERTOS
+#include <libmid_nvram/snx_mid_nvram.h>
+#else
 #include <termios.h>
+#endif
 
+#ifndef SYSTEM_FREERTOS
 static pthread_mutex_t lock;
-static int num_sockets_open;
-static int debug_level;
 static int serial_port_fd = -1;
 static int fc_udp_in_fd = -1;
 
-// public web-site that will be allowed. Can be edited with NVRAM editor
-static const char *public_origin = "fly.example.com";
-
 struct sockaddr_in fc_addr;
 socklen_t fc_addrlen;
+
+#endif
+
+static int num_sockets_open;
+static int debug_level;
+
+// public web-site that will be allowed. Can be edited with NVRAM editor
+static const char *public_origin = "fly.example.com";
 
 #ifndef bool
 #define bool int
@@ -43,6 +50,15 @@ void web_debug(int level, const char *fmt, ...)
     va_end(ap);
 }
 
+#ifdef SYSTEM_FREERTOS
+static void lock_state(void)
+{
+}
+
+static void unlock_state(void)
+{
+}
+#else
 static void lock_state(void)
 {
     pthread_mutex_lock(&lock);
@@ -52,6 +68,7 @@ static void unlock_state(void)
 {
     pthread_mutex_unlock(&lock);
 }
+#endif
 
 /*
   destroy socket buffer, writing any pending data
