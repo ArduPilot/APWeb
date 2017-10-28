@@ -12,6 +12,7 @@
     <script type="text/javascript" src="js/charts.js"></script>
     <script type="text/javascript" src="js/pouchdb.js"></script>
     <script type="text/javascript" src="js/database.js"></script>
+    <script type="text/javascript" src="js/mag_table.js"></script>
   </head>
 <body>
 
@@ -20,6 +21,8 @@
 <div class="tab">
   <button class="tablinks" onclick="openTab(event, 'Accelerometer')" id="defaultTab">Accelerometer</button>
   <button class="tablinks" onclick="openTab(event, 'Magnetometer')">Magnetometer</button>
+  <button class="tablinks" onclick="openTab(event, 'MotorCal')">MotorCal</button>
+  <button class="tablinks" onclick="openTab(event, 'Combined')">Combined</button>
 </div>
 
 <div id="Accelerometer" class="tabcontent">
@@ -104,10 +107,18 @@ accelerometer calibration.
 
 <h1>Magnetometer calibration</h1>
 
-To calibrate the magnetometer you will need to move to a location well
-away from all metal. Then press the button below to start
-calibration. Once started you will need to rotate the vehicle about
-all axes.
+There are two types of magnetometer calibration available. Please
+choose which type of calibration you would like. A rotating
+calibration is considerably more accurate, but takes longer.
+
+<hr>
+
+<h2>Rotating Magnetometer calibration</h2>
+
+To calibrate the magnetometer with a rotating calibration you will
+need to move to a location well away from all metal. Then press the
+button below to start calibration. Once started you will need to
+rotate the vehicle about all axes.
 
 <p>A progress bar will display to show how far you are through the calibration.
 
@@ -125,6 +136,30 @@ all axes.
 </div>
   
 <p><input type="submit" name="action" value="Start Magnetometer Calibration" onclick="magnetometer_cal();"><br>
+
+<hr>
+
+<h2>Fixed Magnetometer calibration</h2>
+
+To calibrate the magnetometer with a fixed calibration you will need
+to place the drone level, pointing in a known direction as far from
+any metal as possible, and supply your approximate latitude and
+longitude. The calibrator will calculate the expected magnetic field
+at that location and adjust your compass offsets to match the expected
+earth magnetic field.
+
+<p>
+  <table>
+    <tr><td>Latitude</td><td><input type=text name="POS_LAT" id="POS_LAT1"></input></td></tr>
+    <tr><td>Longitude</td><td><input type=text name="POS_LON" id="POS_LON1"></input></td></tr>
+    <tr><td>Direction</td><td><input type=text name="YAW_DEGREES" value="0" id="YAW_DEGREES1"></input></td></tr>
+  </table>
+
+<p><b>After a magnetometer calibration you will need to power cycle your vehicle before you can fly.</b>
+
+<p><div id="mag_fixed_message"></div>
+
+<p><input type="submit" name="action" value="Start Fixed Calibration" onclick="magnetometer_fixed_cal();"><br>
 
 <hr>
 
@@ -163,20 +198,226 @@ all axes.
 </div>
 
 
+<div id="MotorCal" class="tabcontent">
+
+<h1>Compass/Motor Calibration</h1>
+
+Calibrating the influence of motors on the magnetometer gives better
+flight by reducing the impact of varying motor power on the observed
+magnetic field.
+
+<p><b>This calibration must be run with the copter held down. It must be run
+  with the propellers fitted and will run all motors in
+  sequence. Make sure that it is safe to run the motors before
+starting the calibration.</b>
+
+<p>The calibration is completed when all four motors have run. The per-motor offsets in the table below will then update.
+
+<p><input type="submit" name="action" value="Start MotorCal Calibration" onclick="motor_cal();"><br>
+
+<p>After calibrating you can test the calibration using the button
+below. This will run the motors in the same way as a calibration, but
+will use the learned values from the calibration. You can observe the
+  change in magnetometer response in the graph below.
+
+<p>During the test you should expect there to be a short spike in
+magnetic field as the motors turn on and off.
+
+<p><input type="submit" name="action" value="Test Calibration" onclick="test_motor_cal();"><br>
+
+<hr>
+
+<h2>Sensor State</h2>
+
+Battery Voltage&nbsp;<div name="MAVLINK:SYS_STATUS:voltage_battery">--</div><br>
+
+<table>
+  <tr><td>
+    
+      <table class="values">
+        <tr><th>Sensor</th><th>X</th><th>Y</th><th>Z</th></tr>
+        <tr><td>Magnetometer</td>
+          <td><div name="MAVLINK:RAW_IMU:xmag"></div></td>
+          <td><div name="MAVLINK:RAW_IMU:ymag"></div></td>
+          <td><div name="MAVLINK:RAW_IMU:zmag"></div></td>
+        </tr>
+        <tr><td>Offsets</td>
+          <td><div name="MAVLINK:SENSOR_OFFSETS:mag_ofs_x"></div></td>
+          <td><div name="MAVLINK:SENSOR_OFFSETS:mag_ofs_y"></div></td>
+          <td><div name="MAVLINK:SENSOR_OFFSETS:mag_ofs_z"></div></td>
+        </tr>
+        <tr><td>Motor1</td>
+          <td><div name="COMPASS_PMOT1_X"></div></td>
+          <td><div name="COMPASS_PMOT1_Y"></div></td>
+          <td><div name="COMPASS_PMOT1_Z"></div></td>
+        </tr>
+        <tr><td>Motor2</td>
+          <td><div name="COMPASS_PMOT2_X"></div></td>
+          <td><div name="COMPASS_PMOT2_Y"></div></td>
+          <td><div name="COMPASS_PMOT2_Z"></div></td>
+        </tr>
+        <tr><td>Motor3</td>
+          <td><div name="COMPASS_PMOT3_X"></div></td>
+          <td><div name="COMPASS_PMOT3_Y"></div></td>
+          <td><div name="COMPASS_PMOT3_Z"></div></td>
+        </tr>
+        <tr><td>Motor4</td>
+          <td><div name="COMPASS_PMOT4_X"></div></td>
+          <td><div name="COMPASS_PMOT4_Y"></div></td>
+          <td><div name="COMPASS_PMOT4_Z"></div></td>
+        </tr>
+      </table>
+
+    </td>
+    <td>
+      Magnetometer&nbsp;(<b style="color:red">X</b>, <b style="color:green">Y</b>, <b style="color:blue">Z</b>)<br>
+      <canvas id="mag_canvas2" width="400" height="200"></canvas><p>
+    </td>
+  </tr>
+  </table>
+</div>
+
+
+<div id="Combined" class="tabcontent">
+
+<h1>Combined Calibration</h1>
+
+This calibration option is intended for factory use. It combines accelerometer,
+magnetometer and per-motor calibration into a single operation. To use
+it you must setup the drone as follows:
+
+<ul>
+  <li>Drone must be level</li>
+  <li>Drone must be pointing in the direction (true heading) given
+    below in degrees</li>
+  <li>Lattitude and Longitude must be approximately as given below</li>
+  <li>The drone must not be near metal, so it must be on a plastic or
+  wooden table, well clear of metal objects (including table legs or
+    chairs)</li>
+  <li>The drone must be prevented from moving. A rubber mat should be
+    sufficient to provide enough friction to prevent movement.</li>
+  <li>You must keep your hands clear of the propellers as they will
+    spin for the per-motor magnetometer calibration</li>
+    <li>Calibration is complete when all 4 motors have spun for motor calibration</li>
+</ul>
+
+<table>
+  <tr>
+    <td>
+      <table id="location_table">
+        <tr><td>Latitude</td><td><input type=text name="POS_LAT" id="POS_LAT2"></input></td></tr>
+        <tr><td>Longitude</td><td><input type=text name="POS_LON" id="POS_LON2"></input></td></tr>
+        <tr><td>Direction</td><td><input type=text name="YAW_DEGREES" id="YAW_DEGREES2" value="0"></input></td></tr>
+      </table>
+      <table id="field_table">
+        <tr><td>Field X</td><td><input type=text id="FIELDX" readonly></input></td></tr>
+        <tr><td>Field Y</td><td><input type=text id="FIELDY" readonly></input></td></tr>
+        <tr><td>Field Z</td><td><input type=text id="FIELDZ" readonly></input></td></tr>
+      </table>
+    </td>
+    <td>
+      <table>
+        <tr><td>SSID</td><td><input type=text id="SSID" readonly></input></td></tr>
+        <tr><td>SerialNumber</td><td><input type=text id="serial_number" readonly></input></td></tr>
+        <tr><td>Label</td><td><input type=text id="LABEL" value=""></input></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p><div id="combined_message"></div>
+
+<p><input type="submit" name="action" value="Start Combined Calibration" onclick="combined_cal();"><br>
+
+<hr>
+  
+<h2>Sensor State</h2>
+
+Battery Voltage&nbsp;<div name="MAVLINK:SYS_STATUS:voltage_battery">--</div><br>
+
+<table>
+  <tr><td>
+    
+      <table class="values">
+        <tr><th>Variable</th><th>Value</th></tr>
+        <tr><td>Roll</td><td><div name="MAVLINK:ATTITUDE:roll"></div></td></tr>
+        <tr><td>Pitch</td><td><div name="MAVLINK:ATTITUDE:pitch"></div></td></tr>
+      </table>
+
+      <table class="values">
+        <tr><th>Name</th><th>X</th><th>Y</th><th>Z</th></tr>
+        <tr><td>Accelerometer</td>
+          <td><div name="MAVLINK:RAW_IMU:xacc"></div></td>
+          <td><div name="MAVLINK:RAW_IMU:yacc"></div></td>
+          <td><div name="MAVLINK:RAW_IMU:zacc"></div></td>
+        </tr>
+        <tr><td>Offsets</td>
+          <td><div name="MAVLINK:SENSOR_OFFSETS:accel_cal_x"></div></td>
+          <td><div name="MAVLINK:SENSOR_OFFSETS:accel_cal_y"></div></td>
+          <td><div name="MAVLINK:SENSOR_OFFSETS:accel_cal_z"></div></td>
+        </tr>
+    </table>
+      <table class="values">
+        <tr><th>Sensor</th><th>X</th><th>Y</th><th>Z</th></tr>
+        <tr><td>Magnetometer</td>
+          <td><div name="MAVLINK:RAW_IMU:xmag"></div></td>
+          <td><div name="MAVLINK:RAW_IMU:ymag"></div></td>
+          <td><div name="MAVLINK:RAW_IMU:zmag"></div></td>
+        </tr>
+        <tr><td>Offsets</td>
+          <td><div name="MAVLINK:SENSOR_OFFSETS:mag_ofs_x"></div></td>
+          <td><div name="MAVLINK:SENSOR_OFFSETS:mag_ofs_y"></div></td>
+          <td><div name="MAVLINK:SENSOR_OFFSETS:mag_ofs_z"></div></td>
+        </tr>
+        <tr><td>Motor1</td>
+          <td><div name="COMPASS_PMOT1_X"></div></td>
+          <td><div name="COMPASS_PMOT1_Y"></div></td>
+          <td><div name="COMPASS_PMOT1_Z"></div></td>
+        </tr>
+        <tr><td>Motor2</td>
+          <td><div name="COMPASS_PMOT2_X"></div></td>
+          <td><div name="COMPASS_PMOT2_Y"></div></td>
+          <td><div name="COMPASS_PMOT2_Z"></div></td>
+        </tr>
+        <tr><td>Motor3</td>
+          <td><div name="COMPASS_PMOT3_X"></div></td>
+          <td><div name="COMPASS_PMOT3_Y"></div></td>
+          <td><div name="COMPASS_PMOT3_Z"></div></td>
+        </tr>
+        <tr><td>Motor4</td>
+          <td><div name="COMPASS_PMOT4_X"></div></td>
+          <td><div name="COMPASS_PMOT4_Y"></div></td>
+          <td><div name="COMPASS_PMOT4_Z"></div></td>
+        </tr>
+      </table>
+
+    </td>
+    <td>
+      Magnetometer&nbsp;(<b style="color:red">X</b>, <b style="color:green">Y</b>, <b style="color:blue">Z</b>)<br>
+      <canvas id="mag_canvas3" width="400" height="200"></canvas><p>
+    </td>
+  </tr>
+  </table>
+</div>
+
 <hr>
 <p><a href="index.html">home</a>
 
 <script type="text/javascript">
 
 var params = {}
+var config_vars = {}
 var six_axis_stage = 0;
 var mag_completion_pct = -1;
 var mag_cal_report_seq = -1;
 var mag_cal_progress_seq = -1;
 var MAG_CAL_SUCCESS = 4;
+var last_mavlink = {};
 
 create_chart("accel_canvas", ["MAVLINK:RAW_IMU:xacc", "MAVLINK:RAW_IMU:yacc", "MAVLINK:RAW_IMU:zacc"]);
 create_chart("mag_canvas",   ["MAVLINK:RAW_IMU:xmag", "MAVLINK:RAW_IMU:ymag", "MAVLINK:RAW_IMU:zmag"]);
+create_chart("mag_canvas2",  ["MAVLINK:RAW_IMU:xmag", "MAVLINK:RAW_IMU:ymag", "MAVLINK:RAW_IMU:zmag"]);
+create_chart("mag_canvas3",  ["MAVLINK:RAW_IMU:xmag", "MAVLINK:RAW_IMU:ymag", "MAVLINK:RAW_IMU:zmag"]);
 
 // setup default Tab
 document.getElementById("defaultTab").click();
@@ -263,6 +504,60 @@ function magnetometer_cal() {
                                   mag_cal_callback, 5000);
 }
 
+
+function mag_cal_fixed_callback(result) {
+    if (result == 0) {
+        set_message_color("mag_fixed_message", "green", "Finished calibration");    
+    } else {
+        set_message_color("mag_fixed_message", "red", "Calibration failed");    
+    }
+}
+
+function check_mag_cal_input(lat, lon, yaw) {
+    if (lat.length == 0 || lon.length == 0 || yaw.length == 0) {
+        return false;
+    }
+    if (lat > 60 || lat < -60 || lon > 180 || lon < -180 || yaw < -180 || yaw > 360) {
+        return false;
+    }
+    return true;
+}
+
+function magnetometer_fixed_cal() {
+    var lat = document.getElementById("POS_LAT1").value;
+    var lon = document.getElementById("POS_LON1").value;
+    var yaw = document.getElementById("YAW_DEGREES1").value;
+    if (!check_mag_cal_input(lat, lon, yaw)) {
+        set_message_color("mag_fixed_message", "red", "Invalid position or direction");
+        return;
+    }
+
+    db_store('last_calibration', [lat, lon, yaw]);
+    
+    var field = get_mag_field_ef(lat, lon);
+    if (field == null) {
+        set_message_color("mag_fixed_message", "red", "Unable to calculate earth field for given position");
+        return;
+    }
+    console.log(field);
+    mavlink_command_long_callback([MAV_CMD_FIXED_MAG_CAL, 0, field[0], field[1], field[2]*1000, yaw],
+                                  mag_cal_fixed_callback, 5000);
+}
+
+// start a compass motor calibration
+function motor_cal() {
+   var motorpower = 50;
+   var testtime = 2;
+   mavlink_command_long_send(MAV_CMD_DO_MOTOR_TEST, 0, 1, 3, motorpower, testtime, 4);
+}
+
+// start a compass motor calibration test
+function test_motor_cal() {
+   var motorpower = 50;
+   var testtime = 3;
+   mavlink_command_long_send(MAV_CMD_DO_MOTOR_TEST, 0, 1, 0, motorpower, testtime, 4);
+}
+
 // fill in calibration parameters
 function fill_parameters(plist) {
     var n = plist.length;
@@ -281,10 +576,444 @@ function fill_parameters(plist) {
             }
         }
     }
+    combined_check_parameters();
+    return true;
+}
+
+// fill in SSID info
+function fill_ssid(plist) {
+    page_fill_json_value(plist);
+    return true;
+}
+
+// fill in config info
+function fill_config(plist) {
+    config_vars = plist;
+    if (config_vars["LATITUDE"] != null) {
+        var e = document.getElementsByName("POS_LAT");
+        for (var i=0; i<e.length; i++) {
+            e[i].value = config_vars["LATITUDE"];
+        }
+    }
+    if (config_vars["LONGITUDE"] != null) {
+        var e = document.getElementsByName("POS_LON");
+        for (var i=0; i<e.length; i++) {
+            e[i].value = config_vars["LONGITUDE"];
+        }
+    }
+    if (config_vars["DIRECTION"] != null) {
+        var e = document.getElementsByName("YAW_DEGREES");
+        for (var i=0; i<e.length; i++) {
+            e[i].value = config_vars["DIRECTION"];
+        }
+    }
+    if (config_vars["MAG_FIELD_X"] != null && config_vars["MAG_FIELD_Y"] != null && config_vars["MAG_FIELD_Z"] != null) {
+        // show field table
+        document.getElementById("field_table").style.display = "";
+        document.getElementById("location_table").style.display = "none";
+        document.getElementById("FIELDX").value = config_vars["MAG_FIELD_X"];
+        document.getElementById("FIELDY").value = config_vars["MAG_FIELD_Y"];
+        document.getElementById("FIELDZ").value = config_vars["MAG_FIELD_Z"];
+    }
+    return true;
+}
+
+/*
+  combined calibration. Perhaps accel, mag and per-motor cal twice,
+  passing if the two results are within a given margin of each other
+*/
+var combined_params = [{},{},{}];
+var combined_stage = null;
+var cal_motor_start = 0;
+var combined_param_wait_start = 0;
+var set_vars = 0;
+var combined_plist = [ "COMPASS_OFS_X", "COMPASS_OFS_Y", "COMPASS_OFS_Z",
+                       "INS_ACCOFFS_X", "INS_ACCOFFS_Y", "INS_ACCOFFS_Z",
+                       "COMPASS_PMOT1_X", "COMPASS_PMOT1_Y", "COMPASS_PMOT1_Z", 
+                       "COMPASS_PMOT2_X", "COMPASS_PMOT2_Y", "COMPASS_PMOT2_Z", 
+                       "COMPASS_PMOT3_X", "COMPASS_PMOT3_Y", "COMPASS_PMOT3_Z", 
+                       "COMPASS_PMOT4_X", "COMPASS_PMOT4_Y", "COMPASS_PMOT4_Z"];
+
+/*
+  check that the change between two sets of parameters is sufficiently small
+*/
+function combined_check_difference_OK()
+{
+    // tolerances for parameters matching
+    var tolerances = { "COMPASS_OFS" : 30,
+                       "COMPASS_PMOT": 15,
+                       "INS_ACCOFFS" : 0.05 };
+    var param1 = combined_params[1];
+    var param2 = combined_params[2];
+    var ret = true;
+    var n = combined_plist.length;
+    for (var i=0; i<n; i++) {
+        var p = combined_plist[i];
+        if (!(p in param1) || !(p in param2)) {
+            console.log("Param " + p + " missing");
+            return false;
+        }
+        if (param1[p] == param2[p] && !p.startsWith("COMPASS_OFS")) {
+            console.log("Param " + p + " unchanged");
+            return false;
+        }
+        var diff = Math.abs(param1[p] - param2[p]);
+        var checked_diff = false;
+        for (var k in tolerances) {
+            if (p.startsWith(k)) {
+                console.log(p + " " + param1[p] + " " + param2[p] + " " + diff);
+                if (diff > tolerances[k]) {
+                    append_message_color("combined_message", "red", "ERR " + p + " changed by " + diff.toFixed(2));
+                    ret = false;
+                }
+                checked_diff = true;
+                break;
+            }
+        }
+        if (!checked_diff) {
+            append_message_color("combined_message", "red", "ERR " + p + " missing check");
+            return false;
+        }
+    }
+    return ret;
+}
+
+/*
+  check resulting calibration is in range
+*/
+function combined_check_param_values(params)
+{
+    // tolerances for parameters matching
+    var tolerances = { "COMPASS_OFS" : 1200,
+                       "INS_ACCOFFS" : 1 };
+    var warnings = { "COMPASS_OFS" : 700,
+                     "COMPASS_PMOT": 120 };
+    ret = true;
+    var n = combined_plist.length;
+    for (var i=0; i<n; i++) {
+        var p = combined_plist[i];
+        for (var k in tolerances) {
+            if (p.startsWith(k)) {
+                var v = params[p];
+                if (Math.abs(v) > tolerances[k]) {
+                    append_message_color("combined_message", "red", "ERR " + p + " out of range " + v);
+                    ret = false;
+                }
+                break;
+            }
+        }
+        for (var k in warnings) {
+            if (p.startsWith(k)) {
+                var v = params[p];
+                if (Math.abs(v) > warnings[k]) {
+                    append_message_color("combined_message", "orange", "WARNING: " + p + " out of range " + v);
+                }
+                break;
+            }
+        }
+    }
+    if (ret) {
+        append_message_color("combined_message", "orange", "param values in range");
+    }
+    return ret;
+}
+
+function combined_finished_cal_stage() {
+    console.log("Finished stage " + combined_stage);
+    combined_save_stage(combined_stage);
+    if (combined_stage < 2) {
+        combined_stage += 1;
+        append_message_color("combined_message", "orange", "Starting stage " + combined_stage);
+        mavlink_command_long_callback([MAV_CMD_PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 0, 4],
+                                      combined_accel_cal_callback, 5000);
+        return;
+    }
+    if (get_utc_sec() - cal_motor_start > 8) {
+        if (combined_check_difference_OK() && combined_check_param_values(params)) {
+            append_message_color("combined_message", "green", "Calibration Passed");
+        } else {
+            append_message_color("combined_message", "red", "Calibration Error");
+        }
+    } else {
+        append_message_color("combined_message", "red", "Calibration Failed");
+    }
+}
+
+// check if two sets of parameters have any equal calibration values
+function combined_check_param_changed(param1, param2) {
+    var n = combined_plist.length;
+    for (var i=0; i<n; i++) {
+        var p = combined_plist[i];
+        if (!(p in param1) || !(p in param2)) {
+            return false;
+        }
+        if (param1[p] == param2[p] && !p.startsWith("COMPASS_OFS")) {
+            console.log("Param " + p + " unchanged");
+            return false;
+        }
+    }
+    return true;
+}
+
+// check if we have new parameters 
+function combined_check_parameters() {
+    if (combined_param_wait_start == 0) {
+        // not waiting
+        return;
+    }
+    if (combined_check_param_changed(params, combined_params[combined_stage-1])) {
+        // all changed, continue with test
+        combined_param_wait_start = 0;
+        combined_finished_cal_stage();
+    } else if (get_utc_sec() - combined_param_wait_start > 3) {
+        combined_param_wait_start = 0;
+        append_message_color("combined_message", "red", "ERR Calibration timeout");
+    }
+}
+
+function combined_cal_finish(result) {
+    // we need to wait for the parameters to update
+    combined_param_wait_start = get_utc_sec();
+}
+
+function combined_mag_callback(result) {
+    if (result == 0) {
+        append_message_color("combined_message", "orange", "Magnetometer calibration successful");    
+    } else {
+        append_message_color("combined_message", "red", "ERR Magnetometer calibration failed");
+        return;
+    }
+    // move onto per-motor cal
+    append_message_color("combined_message", "blue", "Starting motor calibration");
+    var motorpower = 40;
+    var testtime = 2;
+    cal_motor_start = get_utc_sec();
+    setTimeout(function() {
+        // we delay for 1s to ensure that the mag cal offsets are reflected in new data
+        mavlink_command_long_callback([MAV_CMD_DO_MOTOR_TEST, 0, 1, 3, motorpower, testtime, 4],
+                                      combined_cal_finish, 16000);
+    }, 1000);
+}
+
+/*
+  check all sensors are in reasonable range
+*/
+function check_sensors_ok() {
+    var required = ["RAW_IMU", "SCALED_PRESSURE", "GPS_RAW_INT"];
+    for (var i=0; i<required.length; i++) {
+        if (!(required[i] in last_mavlink)) {
+            append_message_color("combined_message", "red", "ERR missing " + required[i]);            
+            return false;
+        }
+    }
+    if (last_mavlink.GPS_RAW_INT.fix_type < 1) {
+        append_message_color("combined_message", "red", "ERR no GPS found");
+        return false;
+    }
+    if (last_mavlink.SYS_STATUS.voltage_battery*0.001 > 4.3 || last_mavlink.SYS_STATUS.voltage_battery*0.001 < 3.3) {
+        append_message_color("combined_message", "red", "ERR bad voltage " + last_mavlink.SYS_STATUS.voltage_battery*0.001);
+        return false;
+    }
+    if (Math.abs(last_mavlink.RAW_IMU.xacc) > 200) {
+        append_message_color("combined_message", "red", "ERR bad X accel " + last_mavlink.RAW_IMU.xacc);
+        return false;
+    }
+    if (Math.abs(last_mavlink.RAW_IMU.yacc) > 200) {
+        append_message_color("combined_message", "red", "ERR bad Y accel " + last_mavlink.RAW_IMU.yacc);
+        return false;
+    }
+    if (last_mavlink.RAW_IMU.zacc < -1200 || last_mavlink.RAW_IMU.zacc > -800) {
+        append_message_color("combined_message", "red", "ERR bad Z accel " + last_mavlink.RAW_IMU.zacc);
+        return false;
+    }
+    var mag_raw = [last_mavlink.RAW_IMU.xmag - last_mavlink.SENSOR_OFFSETS.mag_ofs_x,
+                   last_mavlink.RAW_IMU.ymag - last_mavlink.SENSOR_OFFSETS.mag_ofs_y,
+                   last_mavlink.RAW_IMU.zmag - last_mavlink.SENSOR_OFFSETS.mag_ofs_z];
+    if (Math.abs(last_mavlink.RAW_IMU.xmag) > 1000 || last_mavlink.RAW_IMU.xmag == 0) {
+        append_message_color("combined_message", "red", "ERR bad X mag " + last_mavlink.RAW_IMU.xmag);
+        return false;
+    }
+    if (Math.abs(last_mavlink.RAW_IMU.ymag) > 1000) {
+        append_message_color("combined_message", "red", "ERR bad Y mag " + last_mavlink.RAW_IMU.ymag);
+        return false;
+    }
+    if (Math.abs(last_mavlink.RAW_IMU.zmag) > 1000 || last_mavlink.RAW_IMU.zmag == 0) {
+        append_message_color("combined_message", "red", "ERR bad Z mag " + last_mavlink.RAW_IMU.zmag);
+        return false;
+    }
+    if (Math.abs(mag_raw[0]) == 0) {
+        append_message_color("combined_message", "red", "ERR bad X raw mag " + mag_raw[0]);
+        return false;
+    }
+    if (Math.abs(mag_raw[2]) == 0) {
+        append_message_color("combined_message", "red", "ERR bad Z raw mag " + mag_raw[2]);
+        return false;
+    }
+    if (last_mavlink.SCALED_PRESSURE.press_abs > 1500 || last_mavlink.SCALED_PRESSURE.press_abs < 600) {
+        append_message_color("combined_message", "red", "ERR bad baro pressure " + last_mavlink.SCALED_PRESSURE.press_abs);
+        return false;
+    }
+    if (last_mavlink.SCALED_PRESSURE.temperature > 7500 || last_mavlink.SCALED_PRESSURE.temperature < 1000) {
+        append_message_color("combined_message", "red", "ERR bad baro temperature " + last_mavlink.SCALED_PRESSURE.temperature);
+        return false;
+    }
+    return true;
+}
+
+function soft_iron_check_param(param_dict, callback, retries) {
+    if (retries == 0) {
+        callback(false);
+        return;
+    }
+    for (var k in param_dict) {
+        if (params[k] == null || Math.abs(params[k] - param_dict[k]) > 0.0001) {
+            // mismatch
+            console.log("retry soft iron");
+            setTimeout(function() { soft_iron_check_param(param_dict, callback, retries-1); }, 200);
+            return;
+        }
+    }
+    // all equal
+    callback(true);
+}
+
+function set_soft_iron(callback) {
+    // allow for soft-iron corrections in WIFI.TXT
+    var soft_iron_vars = [ "COMPASS_DIA_X", "COMPASS_DIA_Y", "COMPASS_DIA_Z",
+                           "COMPASS_ODI_X", "COMPASS_ODI_Y", "COMPASS_ODI_Z" ];
+    var commands = [];
+    var param_dict = {}
+    var count = 0;
+    for (var i=0; i<soft_iron_vars.length; i++) {
+        var v = soft_iron_vars[i];
+        if (config_vars[v] != null) {
+            param_dict[v] = config_vars[v];
+            commands.push("mavlink_message_send(PARAM_SET,0,0," + v + "," + config_vars[v] + ")");
+            count += 1;
+        }
+    }
+    set_vars = count;
+    if (count == 0) {
+        callback(true);
+        return;
+    }
+    command_send(commands);
+    // now wait for the parameters to be set
+    setTimeout(function() { soft_iron_check_param(param_dict, callback, 10); }, 200);
+}
+
+function combined_accel_cal_callback(result) {
+    var color = "red";
+    if (result == 0) {
+        append_message_color("combined_message", "orange", "accel calibration successful");
+    } else {
+        append_message_color("combined_message", "red", "ERR accel calibration failed");
+        return;
+    }
+
+    // move on to mag cal
+    var lat = document.getElementById("POS_LAT2").value;
+    var lon = document.getElementById("POS_LON2").value;
+    var yaw = document.getElementById("YAW_DEGREES2").value;
+
+    if (!check_mag_cal_input(lat, lon, yaw)) {
+        append_message_color("combined_message", "red", "ERR Invalid position or direction");
+        return;
+    }
+
+    db_store('last_calibration', [lat, lon, yaw]);
+    
+    mavlink_statustext(MAV_SEVERITY_INFO, "Calibrate " + lat + ":" + lon + ":" + yaw)
+    mavlink_statustext(MAV_SEVERITY_INFO,
+                       "ID " + document.getElementById("SSID").value + " " +
+                       + document.getElementById("serial_number").value + " "
+                       + document.getElementById("LABEL").value);
+    if (config_vars["SSID"] != null) {
+        mavlink_statustext(MAV_SEVERITY_INFO, "Station " + config_vars["SSID"]);
+    }
+        
+    var field = get_mag_field_ef(lat, lon);
+    if (field == null) {
+        append_message_color("combined_message", "red", "ERR Unable to calculate earth field");
+        return;
+    }
+    console.log(field);
+    append_message_color("combined_message", "blue", "starting magnetometer calibration");
+
+    if (set_vars > 0) {
+        append_message_color("combined_message", "blue", "Set soft iron " + set_vars);
+    }
+    
+    if (config_vars["MAG_FIELD_X"] != null && config_vars["MAG_FIELD_Y"] != null && config_vars["MAG_FIELD_Z"] != null) {
+        if (set_vars < 6) {
+            append_message_color("combined_message", "red", "ERR Missing DIA or ODI values in WIFI.TXT");
+            return;
+        }
+        field = [config_vars["MAG_FIELD_X"], config_vars["MAG_FIELD_Y"], config_vars["MAG_FIELD_Z"]];
+        append_message_color("combined_message", "blue", "Expected field " + field[0] + " " + field[1] + " " + field[2]);
+        // delay for 2s to wait for DIA and ODI to be written
+        setTimeout(function() {
+            mavlink_command_long_callback([MAV_CMD_FIXED_MAG_CAL_FIELD, 0, field[0], field[1], field[2]],
+                                          combined_mag_callback, 5000);
+        }, 2000);
+    } else {
+        if (cfg_vars["SSID"] != null) {
+            append_message_color("combined_message", "red", "ERR Missing mag values in WIFI.TXT");            
+            return;
+        }
+        mavlink_command_long_callback([MAV_CMD_FIXED_MAG_CAL, 0, field[0], field[1], field[2]*1000, yaw],
+                                      combined_mag_callback, 5000);
+    }
+}
+
+// save parameters for a given stage
+function combined_save_stage(stage) {
+    for (var p in params) {
+        combined_params[stage][p] = params[p];
+    }
+}
+
+// combined calibration - run one stage
+function combined_run_stage() {
+    // take a copy of current parameters
+        
+    mavlink_command_long_callback([MAV_CMD_PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 0, 4],
+                                  combined_accel_cal_callback, 5000);
+}
+
+function combined_soft_iron_callback(result) {
+    if (!result) {
+        append_message_color("combined_message", "red", "ERR setting soft iron failed");
+        return;
+    }
+    append_message_color("combined_message", "orange", "soft iron set OK");
+    
+    if (!check_sensors_ok()) {
+        append_message_color("combined_message", "red", "ERR sensors error");
+        return;
+    } else {
+        append_message_color("combined_message", "orange", "sensor ranges OK");
+    }
+
+    combined_save_stage(0);
+    combined_stage = 1;
+    append_message_color("combined_message", "orange", "Starting stage " + combined_stage);
+    combined_param_wait_start = 0;
+    mavlink_command_long_callback([MAV_CMD_PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 0, 4],
+                                  combined_accel_cal_callback, 5000);
+}
+
+// combined calibration
+function combined_cal() {
+    set_message_color("combined_message", "blue", "starting calibration");    
+    command_send("mavlink_message_send(NAMED_VALUE_INT,0,LOGDISARM,1)");
+
+    set_soft_iron(combined_soft_iron_callback);
 }
 
 // check for incoming messages
 function mavlink_callback(mavlink) {
+    last_mavlink = mavlink;
     if ('COMMAND_LONG' in mavlink) {
         command_long = mavlink.COMMAND_LONG;
         if (command_long.command == MAV_CMD_ACCELCAL_VEHICLE_POS && six_axis_stage > 0) {
@@ -341,16 +1070,48 @@ function mavlink_callback(mavlink) {
     }
 }
 
+// start with field table disabled
+document.getElementById("field_table").style.display = "none";
+
 // fill in parameters at 2Hz
 ajax_json_poll(drone_url + "/ajax/command.json?command1=get_param_list(INS_,COMPASS_)", fill_parameters, 500);
 
+// fill in SSID info
+ajax_json_poll(drone_url + "/ajax/sysinfo.json", fill_ssid, 3000);
+
+// fill in config info
+ajax_json_poll(drone_url + "/ajax/command.json?command1=get_config_vars()", fill_config, 2000);
+                                                                     
 // setup to fill in MAVLink data and call sensor_callback
 fill_mavlink_ids({ 'chart_lines' : chart_lines,
                    'callback_fn' : mavlink_callback,
                    'extra_msgs' : ['COMMAND_LONG',
                                    'STATUSTEXT',
+                                   'SCALED_PRESSURE',
+                                   'GPS_RAW_INT',
                                    'MAG_CAL_PROGRESS',
                                    'MAG_CAL_REPORT']});
+
+function set_last_calibration(cal) {
+    if (config_vars["LATITUDE"] != null) {
+        return;
+    }
+    var e = document.getElementsByName("POS_LAT");
+    for (var i=0; i<e.length; i++) {
+        e[i].value = cal[0];
+    }
+    e = document.getElementsByName("POS_LON");
+    for (var i=0; i<e.length; i++) {
+        e[i].value = cal[1];
+    }
+    e = document.getElementsByName("YAW_DEGREES");
+    for (var i=0; i<e.length; i++) {
+        e[i].value = cal[2];
+    }
+    console.log("Set last_calibration " + cal);
+}
+
+db_fetch('last_calibration', set_last_calibration);
 
 </script>
 
