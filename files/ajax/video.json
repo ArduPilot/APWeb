@@ -1,0 +1,4 @@
+{
+    "ambient_light": {{ @get_ambient_light() }},
+    "isp_offset":    {{ @get_isp_offset() }}
+}
