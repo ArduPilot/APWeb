@@ -16,6 +16,9 @@ void comm_send_buffer(mavlink_channel_t chan, const uint8_t *buf, uint8_t len)
     case MAVLINK_COMM_FC:
         mavlink_fc_write(buf, len);
         break;
+    case MAVLINK_COMM_RC:
+        mavlink_rc_write(buf, len);
+        break;
     default:
         break;
     }

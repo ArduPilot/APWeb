@@ -12,7 +12,7 @@
 #define MAVLINK_SEND_UART_BYTES(chan, buf, len) comm_send_buffer(chan, buf, len)
 
 // allow two mavlink ports
-#define MAVLINK_COMM_NUM_BUFFERS 1
+#define MAVLINK_COMM_NUM_BUFFERS 2
 
 #include <generated/mavlink/ardupilotmega/version.h>
 #include <generated/mavlink/mavlink_types.h>
@@ -39,6 +39,9 @@ void comm_send_ch(mavlink_channel_t chan, uint8_t ch);
 
 // alias for link to flight controller
 #define MAVLINK_COMM_FC MAVLINK_COMM_0
+
+// link to real FC when using SITL, for RC_CHANNELS
+#define MAVLINK_COMM_RC MAVLINK_COMM_1
 
 #define MAVLINK_SYSTEM_ID 67
 #define MAVLINK_TARGET_SYSTEM_ID 1
