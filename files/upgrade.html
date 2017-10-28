@@ -77,6 +77,17 @@ Choose a file to upload: <input id="TX:file" type="file" accept=".img"/><br />
 Current version: <b id="tx_fw_version">unknown</b>
 
 <hr/>
+<h2>Sonix IQ.BIN Upload</h2>
+
+The IQ.BIN file on the sonix video board controls the video settings
+(such as white balance, exposure etc). You will not normally need to
+update this, but occasionally a new version may be released.<p>
+
+Choose a file to upload: <input id="IQ:file" type="file" accept=".BIN"/><br />
+<input type="submit" value="Upload File" onclick="upload_file('IQ');"/>
+
+
+<hr/>
 <h2>File Upload</h2>
 
 You can upload a file to any location on the microSD card.<p>
