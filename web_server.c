@@ -298,6 +298,21 @@ static void setup_origin(const char *origin)
 /*
   task for web_server
 */
+#ifdef SYSTEM_FREERTOS
+static void web_server_connection_process(void *pvParameters)
+{
+    struct connection_state *c = pvParameters;
+    c->cgi = cgi_init(c, c->sock);
+    if (!c->cgi) {
+        connection_destroy(c);
+        return;
+    }
+
+    c->cgi->check_origin = check_origin;
+
+    connection_process(c);
+}
+#else
 static void *web_server_connection_process(void *arg)
 {
     int fd = (intptr_t)arg;
@@ -326,6 +341,7 @@ static void *web_server_connection_process(void *arg)
     connection_process(c);
     return NULL;
 }
+#endif
 
 /*
   main select loop
