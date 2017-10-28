@@ -535,6 +535,47 @@ static void handle_tx_upgrade(struct template_state *tmpl, const char *filename,
 }
 
 /*
+  handle IQ.BIN update
+ */
+static void handle_IQ_upgrade(struct template_state *tmpl, const char *filename, const char *filedata, uint32_t size)
+{
+    console_printf("IQ_upgrade: size=%u\n", size);
+    set_upload_message("IQ update transfer started");
+    if (size < 10000 || size > 60000) {
+        set_upload_message("Invalid IQ.bin size");        
+        set_upload_progress(100);
+        return;
+    }
+    // build the IQ.BIN from the raw sensor file
+    const uint32_t data_size = 0x1E000;
+    struct iq_data {
+        char name[8];
+        uint32_t start;
+        uint32_t end;
+        uint32_t pad[4];
+        uint8_t data[data_size];
+    } *buf;
+    buf = calloc(sizeof(*buf), 1);
+    if (buf == NULL) {
+        set_upload_message("IQ allocation failed");
+        return;
+    }
+    strcpy(buf->name, "ov9732");
+    buf->start = 0x20;
+    buf->end = 0x20 + size;
+    memset(buf->data, 0xFF, sizeof(buf->data));
+    memcpy(buf->data, filedata, size);
+    set_upload_progress(1);
+    if (snx_nvram_binary_set("Vdo_IQ", "IQ.bin", __DECONST(uint8_t *,buf), sizeof(*buf)) != NVRAM_SUCCESS) {
+        set_upload_message("IQ update failed");
+    } else {
+        set_upload_message("IQ update succeeded");
+    }
+    free(buf);
+    set_upload_progress(100);
+}
+
+/*
   handle file upload
  */
 static void handle_file_upload(struct template_state *tmpl, const char *filename, const char *filedata, uint32_t size)
@@ -585,6 +626,8 @@ static void file_upload(struct template_state *tmpl, const char *name, const cha
         handle_ardupilot_upgrade(tmpl, filename, filedata, size);
     } else if (strcmp(uploadtype, "TX") == 0) {
         handle_tx_upgrade(tmpl, filename, filedata, size);
+    } else if (strcmp(uploadtype, "IQ") == 0) {
+        handle_IQ_upgrade(tmpl, filename, filedata, size);
     } else if (strcmp(uploadtype, "sonix") == 0) {
         handle_sonix_upgrade(tmpl, filename, filedata, size);
     } else if (strcmp(uploadtype, "fs") == 0) {
