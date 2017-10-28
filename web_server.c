@@ -343,6 +343,83 @@ static void *web_server_connection_process(void *arg)
 }
 #endif
 
+#ifdef SYSTEM_FREERTOS
+/*
+  task for web_server
+*/
+void web_server_task_process(void *pvParameters)
+{
+    int listen_sock;
+
+    struct sockaddr_in addr;
+
+    // setup default allowed origin
+    setup_origin(public_origin);
+    
+    if ((listen_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+        goto end;
+    }
+
+    memset(&addr, 0x0, sizeof(addr));
+
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(WEB_SERVER_PORT);
+
+    if (bind(listen_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        goto end;
+    }
+
+    if (listen(listen_sock, 20) < 0) {
+        goto end;
+    }
+
+    while (1)
+    {
+        fd_set fds;
+        struct timeval tv;
+        int numfd = listen_sock+1;
+
+        FD_ZERO(&fds);
+        FD_SET(listen_sock, &fds);
+
+        tv.tv_sec = 1;
+        tv.tv_usec = 0;
+
+        int res = select(numfd, &fds, NULL, NULL, &tv);
+        if (res <= 0) {
+            continue;
+        }
+
+        if (FD_ISSET(listen_sock, &fds)) {
+            // new connection
+            struct sockaddr_in addr;
+            int len = sizeof(struct sockaddr_in);
+            int fd = accept(listen_sock, (struct sockaddr *)&addr, (socklen_t *)&len);
+            if (fd != -1) {
+                struct connection_state *c = talloc_zero(NULL, struct connection_state);
+                if (c == NULL) {
+                    close(fd);
+                    continue;
+                }
+                c->sock = talloc_zero(c, struct sock_buf);
+                if (!c->sock) {
+                    talloc_free(c);
+                    close(fd);
+                    continue;
+                }
+                c->sock->fd = fd;
+                num_sockets_open++;
+                talloc_set_destructor(c->sock, sock_buf_destroy);
+                xTaskCreate(web_server_connection_process, "http_connection", STACK_SIZE_4K, c, 10, &c->task);
+            }
+        }
+    }
+
+end:
+    vTaskDelete(NULL);
+}
+#else
 /*
   main select loop
  */
@@ -671,3 +748,4 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+#endif
