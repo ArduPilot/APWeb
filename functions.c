@@ -10,6 +10,17 @@
 #include "cgi.h"
 
 #ifdef SYSTEM_FREERTOS
+#include "../mavlink_wifi.h"
+#include "video_main.h"
+#include <libmid_fwupgrade/fwupgrade.h>
+#include <libmid_nvram/snx_mid_nvram.h>
+#include <wifi/wifi_api.h>
+#include "../tx_upload.h"
+#include "../ublox.h"
+#include "files/version.h"
+#include <uart/uart.h>
+#include <libmid_isp/snx_mid_isp.h>
+
 /*
   get uptime in seconds
  */
@@ -1026,4 +1037,3 @@ void functions_init(struct template_state *tmpl)
     tmpl->put(tmpl, "get_param", "", get_param);
     tmpl->put(tmpl, "get_param_list", "", get_param_list);
 }
-
