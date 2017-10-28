@@ -129,12 +129,16 @@ void sock_printf(struct sock_buf *sock, const char *fmt, ...)
     va_list ap;
     va_start(ap, fmt);
     char *buf2 = print_vprintf(sock, fmt, ap);
+#ifdef SYSTEM_FREERTOS
+    sock_write(sock, buf2, talloc_get_size(buf2));
+#else
     size_t size = talloc_get_size(buf2);
     if (buf2 && size > 0 && buf2[size-1] == 0) {
         // cope with differences in print_vprintf between platforms
         size--;
     }
     sock_write(sock, buf2, size);
+#endif
     talloc_free(buf2);
     va_end(ap);
 }
