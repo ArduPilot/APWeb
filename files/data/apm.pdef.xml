@@ -254,13 +254,13 @@
 <value code="3">Enabled always LAND</value>
 </values>
 </param>
-<param humanName="Throttle Failsafe Value" name="ArduCopter:FS_THR_VALUE" documentation="The PWM level on channel 3 below which throttle failsafe triggers" user="Standard">
+<param humanName="Throttle Failsafe Value" name="ArduCopter:FS_THR_VALUE" documentation="The PWM level in microseconds on channel 3 below which throttle failsafe triggers" user="Standard">
 <field name="Range">925 1100</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Throttle deadzone" name="ArduCopter:THR_DZ" documentation="The deadzone above and below mid throttle.  Used in AltHold, Loiter, PosHold flight modes" user="Standard">
+<param humanName="Throttle deadzone" name="ArduCopter:THR_DZ" documentation="The deadzone above and below mid throttle in PWM microseconds. Used in AltHold, Loiter, PosHold flight modes" user="Standard">
 <field name="Range">0 300</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -909,6 +909,7 @@
 <values>
 <value code="3">Auto</value>
 <value code="4">Guided</value>
+<value code="5">LOITER</value>
 <value code="6">RTL</value>
 <value code="9">Land</value>
 <value code="17">Brake</value>
@@ -1407,7 +1408,8 @@
 </param>
 <param humanName="Piro Comp Enable" name="ATC_PIRO_COMP" documentation="Pirouette compensation enabled" user="Advanced">
 <values>
-<value code="0">Disabled 1</value>
+<value code="0">Disabled</value>
+<value code="1">Enabled</value>
 </values>
 </param>
 <param humanName="Hover Roll Trim" name="ATC_HOVR_ROL_TRM" documentation="Trim the hover roll angle to counter tail rotor thrust in a hover" user="Advanced">
@@ -1538,12 +1540,14 @@
 </parameters>
 <parameters name="AVOID_">
 <param humanName="Avoidance control enable/disable" name="AVOID_ENABLE" documentation="Enabled/disable stopping at fence" user="Standard">
-<field name="Bitmask">0:StopAtFence,1:UseProximitySensor</field>
+<field name="Bitmask">0:StopAtFence,1:UseProximitySensor,2:StopAtBeaconFence</field>
 <values>
 <value code="0">None</value>
 <value code="1">StopAtFence</value>
 <value code="2">UseProximitySensor</value>
-<value code="3">All</value>
+<value code="3">StopAtFence and UseProximitySensor</value>
+<value code="4">StopAtBeaconFence</value>
+<value code="7">All</value>
 </values>
 </param>
 <param humanName="Avoidance max lean angle in non-GPS flight modes" name="AVOID_ANGLE_MAX" documentation="Max lean angle used to avoid obstacles while in non-GPS modes" user="Standard">
@@ -1667,11 +1671,17 @@
 </param>
 <param humanName="Battery serial number" name="BATT2_SERIAL_NUM" documentation="Battery serial number, automatically filled in for SMBus batteries, otherwise will be -1" user="Advanced">
 </param>
-<param humanName="Low voltage timeout" name="BATT_VOLT_TIMER" documentation="This is the timeout in seconds before a low voltage event will be triggered. For aircraft with low C batteries it may be necessary to raise this in order to cope with low voltage on long takeoffs. A value of zero disables low voltage errors." user="Advanced">
+<param humanName="Low voltage timeout" name="BATT_LOW_TIMER" documentation="This is the timeout in seconds before a low voltage event will be triggered. For aircraft with low C batteries it may be necessary to raise this in order to cope with low voltage on long takeoffs. A value of zero disables low voltage errors." user="Advanced">
 <field name="Range">0 120</field>
 <field name="Increment">1</field>
 <field name="Units">s</field>
 <field name="UnitText">seconds</field>
+</param>
+<param humanName="Low voltage type" name="BATT_LOW_TYPE" documentation="Voltage type used for detection of low voltage event" user="Advanced">
+<values>
+<value code="0">Raw Voltage</value>
+<value code=" 1">Sag Compensated Voltage</value>
+</values>
 </param>
 </parameters>
 <parameters name="BCN">
@@ -1851,10 +1861,10 @@
 <value code="1">Disabled</value>
 </values>
 </param>
-<param humanName="RSSI value channel" name="BRD_RADIO_RSSICH" documentation="Channel to show RSSI value, or zero for disabled" user="Advanced">
+<param humanName="RSSI signal strength" name="BRD_RADIO_SIGCH" documentation="Channel to show receive RSSI signal strength, or zero for disabled" user="Advanced">
 <field name="Range">0 16</field>
 </param>
-<param humanName="Packet rate channel" name="BRD_RADIO_RATECH" documentation="Channel to show received packet rate, or zero for disabled" user="Advanced">
+<param humanName="Packet rate channel" name="BRD_RADIO_PPSCH" documentation="Channel to show received packet-per-second rate, or zero for disabled" user="Advanced">
 <field name="Range">0 16</field>
 </param>
 <param humanName="Enable telemetry" name="BRD_RADIO_TELEM" documentation="If this is non-zero then telemetry packets will be sent over DSM" user="Advanced">
@@ -1863,8 +1873,8 @@
 <value code="1">Enabled</value>
 </values>
 </param>
-<param humanName="Transmit power" name="BRD_RADIO_TXPOW" documentation="Set transmit power" user="Advanced">
-<field name="Range">0 7</field>
+<param humanName="Telemetry Transmit power" name="BRD_RADIO_TXPOW" documentation="Set telemetry transmit power. This is the power level (from 1 to 8) for telemetry packets sent from the RX to the TX" user="Advanced">
+<field name="Range">1 8</field>
 </param>
 <param humanName="Put radio into FCC test mode" name="BRD_RADIO_FCCTST" documentation="If this is enabled then the radio will continuously transmit as required for FCC testing. The transmit channel is set by the value of the parameter. The radio will not work for RC input while this is enabled" user="Advanced">
 <values>
@@ -1872,6 +1882,9 @@
 <value code="1">MinChannel</value>
 <value code="2">MidChannel</value>
 <value code="3">MaxChannel</value>
+<value code="4">MinChannelCW</value>
+<value code="5">MidChannelCW</value>
+<value code="6">MaxChannelCW</value>
 </values>
 </param>
 <param humanName="Stick input mode" name="BRD_RADIO_STKMD" documentation="This selects between different stick input modes. The default is mode2, which has throttle on the left stick and pitch on the right stick. You can instead set mode1, which has throttle on the right stick and pitch on the left stick." user="Advanced">
@@ -1879,6 +1892,37 @@
 <value code="1">Mode1</value>
 <value code="2">Mode2</value>
 </values>
+</param>
+<param humanName="Set radio to factory test channel" name="BRD_RADIO_TESTCH" documentation="This sets the radio to a fixed test channel for factory testing. Using a fixed channel avoids the need for binding in factory testing." user="Advanced">
+<values>
+<value code="0">Disabled</value>
+<value code="1">TestChan1</value>
+<value code="2">TestChan2</value>
+<value code="3">TestChan3</value>
+<value code="4">TestChan4</value>
+<value code="5">TestChan5</value>
+<value code="6">TestChan6</value>
+<value code="7">TestChan7</value>
+<value code="8">TestChan8</value>
+</values>
+</param>
+<param humanName="RSSI value channel for telemetry data on transmitter" name="BRD_RADIO_TSIGCH" documentation="Channel to show telemetry RSSI value as received by TX" user="Advanced">
+<field name="Range">0 16</field>
+</param>
+<param humanName="Telemetry PPS channel" name="BRD_RADIO_TPPSCH" documentation="Channel to show telemetry packets-per-second value, as received at TX" user="Advanced">
+<field name="Range">0 16</field>
+</param>
+<param humanName="Transmitter transmit power" name="BRD_RADIO_TXMAX" documentation="Set transmitter maximum transmit power (from 1 to 8)" user="Advanced">
+<field name="Range">1 8</field>
+</param>
+<param humanName="Transmitter buzzer adjustment" name="BRD_RADIO_BZOFS" documentation="Set transmitter buzzer note adjustment (adjust frequency up)" user="Advanced">
+<field name="Range">0 40</field>
+</param>
+<param humanName="Auto-bind time" name="BRD_RADIO_ABTIME" documentation="When non-zero this sets the time with no transmitter packets before we start looking for auto-bind packets." user="Advanced">
+<field name="Range">0 120</field>
+</param>
+<param humanName="Auto-bind level" name="BRD_RADIO_ABLVL" documentation="This sets the minimum RSSI of an auto-bind packet for it to be accepted. This should be set so that auto-bind will only happen at short range to minimise the change of an auto-bind happening accidentially" user="Advanced">
+<field name="Range">0 31</field>
 </param>
 </parameters>
 <parameters name="BTN_">
@@ -1972,12 +2016,12 @@
 <field name="Units">ds</field>
 <field name="UnitText">deciseconds</field>
 </param>
-<param humanName="Servo ON PWM value" name="CAM_SERVO_ON" documentation="PWM value to move servo to when shutter is activated" user="Standard">
+<param humanName="Servo ON PWM value" name="CAM_SERVO_ON" documentation="PWM value in microseconds to move servo to when shutter is activated" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Servo OFF PWM value" name="CAM_SERVO_OFF" documentation="PWM value to move servo to when shutter is deactivated" user="Standard">
+<param humanName="Servo OFF PWM value" name="CAM_SERVO_OFF" documentation="PWM value in microseconds to move servo to when shutter is deactivated" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
@@ -2037,13 +2081,13 @@
 <value code="10">Servo</value>
 </values>
 </param>
-<param humanName="Parachute Servo ON PWM value" name="CHUTE_SERVO_ON" documentation="Parachute Servo PWM value when parachute is released" user="Standard">
+<param humanName="Parachute Servo ON PWM value" name="CHUTE_SERVO_ON" documentation="Parachute Servo PWM value in microseconds when parachute is released" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Servo OFF PWM value" name="CHUTE_SERVO_OFF" documentation="Parachute Servo PWM value when parachute is not released" user="Standard">
+<param humanName="Servo OFF PWM value" name="CHUTE_SERVO_OFF" documentation="Parachute Servo PWM value in microseconds when parachute is not released" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -2114,10 +2158,11 @@
 <value code="1">Enabled</value>
 </values>
 </param>
-<param humanName="Auto Declination" name="COMPASS_AUTODEC" documentation="Enable or disable the automatic calculation of the declination based on gps location" user="Advanced">
+<param humanName="Auto Declination" name="COMPASS_AUTODEC" documentation="Enable or disable the automatic calculation of the declination based on gps location. If set to 1 then the declination is set but not saved. If set to 2 then it is set and saved" user="Advanced">
 <values>
 <value code="0">Disabled</value>
 <value code="1">Enabled</value>
+<value code="2">EnabledAndSave</value>
 </values>
 </param>
 <param humanName="Motor interference compensation type" name="COMPASS_MOTCT" documentation="Set motor interference compensation type to disabled, throttle or current.  Do not change manually." user="Advanced">
@@ -2443,6 +2488,42 @@
 <field name="Increment">1</field>
 </param>
 </parameters>
+<parameters name="COMPASS_PMOT">
+<param humanName="per-motor compass correction enable" name="COMPASS_PMOT_EN" documentation="This enables per-motor compass corrections" user="Advanced">
+<values>
+<value code="0">Disabled</value>
+<value code="1">Enabled</value>
+</values>
+</param>
+<param humanName="per-motor exponential correction" name="COMPASS_PMOT_EXP" documentation="This is the exponential correction for the power output of the motor for per-motor compass correction" user="Advanced">
+<field name="Range">0 2</field>
+<field name="Increment">0.01</field>
+</param>
+<param humanName="Compass per-motor1 X" name="COMPASS_PMOT1_X" documentation="Compensation for X axis of motor1" user="Advanced">
+</param>
+<param humanName="Compass per-motor1 Y" name="COMPASS_PMOT1_Y" documentation="Compensation for Y axis of motor1" user="Advanced">
+</param>
+<param humanName="Compass per-motor1 Z" name="COMPASS_PMOT1_Z" documentation="Compensation for Z axis of motor1" user="Advanced">
+</param>
+<param humanName="Compass per-motor2 X" name="COMPASS_PMOT2_X" documentation="Compensation for X axis of motor2" user="Advanced">
+</param>
+<param humanName="Compass per-motor2 Y" name="COMPASS_PMOT2_Y" documentation="Compensation for Y axis of motor2" user="Advanced">
+</param>
+<param humanName="Compass per-motor2 Z" name="COMPASS_PMOT2_Z" documentation="Compensation for Z axis of motor2" user="Advanced">
+</param>
+<param humanName="Compass per-motor3 X" name="COMPASS_PMOT3_X" documentation="Compensation for X axis of motor3" user="Advanced">
+</param>
+<param humanName="Compass per-motor3 Y" name="COMPASS_PMOT3_Y" documentation="Compensation for Y axis of motor3" user="Advanced">
+</param>
+<param humanName="Compass per-motor3 Z" name="COMPASS_PMOT3_Z" documentation="Compensation for Z axis of motor3" user="Advanced">
+</param>
+<param humanName="Compass per-motor4 X" name="COMPASS_PMOT4_X" documentation="Compensation for X axis of motor4" user="Advanced">
+</param>
+<param humanName="Compass per-motor4 Y" name="COMPASS_PMOT4_Y" documentation="Compensation for Y axis of motor4" user="Advanced">
+</param>
+<param humanName="Compass per-motor4 Z" name="COMPASS_PMOT4_Z" documentation="Compensation for Z axis of motor4" user="Advanced">
+</param>
+</parameters>
 <parameters name="EK2_">
 <param humanName="Enable EKF2" name="EK2_ENABLE" documentation="This enables EKF2. Enabling EKF2 only makes the maths run, it does not mean it will be used for flight control. To use it for flight control set AHRS_EKF_TYPE=2. A reboot or restart will need to be performed after changing the value of EK2_ENABLE for it to take effect." user="Advanced">
 <values>
@@ -2706,6 +2787,10 @@
 <field name="Bitmask">0:FirstEKF,1:SecondEKF,2:ThirdEKF,3:FourthEKF,4:FifthEKF,5:SixthEKF</field>
 <field name="RebootRequired">True</field>
 </param>
+<param humanName="Bitmask control of EKF reference height correction" name="EK2_OGN_HGT_MASK" documentation="When a height sensor other than GPS is used as the primary height source by the EKF, the position of the zero height datum is defined by that sensor and its frame of reference. If a GPS height measurement is also available, then the height of the WGS-84 height datum used by the EKF can be corrected so that the height returned by the getLLH() function is compensated for primary height sensor drift and change in datum over time. The first two bit positions control when the height datum will be corrected. Correction is performed using a Bayes filter and only operates when GPS quality permits. The third bit position controls where the corrections to the GPS reference datum are applied. Corrections can be applied to the local vertical position (default) or to the reported EKF origin height." user="Advanced">
+<field name="Bitmask">0:Correct when using Baro height,1:Correct when using range finder height,2:Apply corrections to origin height</field>
+<field name="RebootRequired">True</field>
+</param>
 </parameters>
 <parameters name="EK3_">
 <param humanName="Enable EKF3" name="EK3_ENABLE" documentation="This enables EKF3. Enabling EKF3 only makes the maths run, it does not mean it will be used for flight control. To use it for flight control set AHRS_EKF_TYPE=3. A reboot or restart will need to be performed after changing the value of EK3_ENABLE for it to take effect." user="Advanced">
@@ -2966,6 +3051,10 @@
 <field name="Bitmask">0:FirstEKF,1:SecondEKF,2:ThirdEKF,3:FourthEKF,4:FifthEKF,5:SixthEKF</field>
 <field name="RebootRequired">True</field>
 </param>
+<param humanName="Bitmask control of EKF reference height correction" name="EK3_OGN_HGT_MASK" documentation="When a height sensor other than GPS is used as the primary height source by the EKF, the position of the zero height datum is defined by that sensor and its frame of reference. If a GPS height measurement is also available, then the height of the WGS-84 height datum used by the EKF can be corrected so that the height returned by the getLLH() function is compensated for primary height sensor drift and change in datum over time. The first two bit positions control when the height datum will be corrected. Correction is performed using a Bayes filter and only operates when GPS quality permits. The third bit position controls where the corrections to the GPS reference datum are applied. Corrections can be applied to the local vertical position (default) or to the reported EKF origin height." user="Advanced">
+<field name="Bitmask">0:Correct when using Baro height,1:Correct when using range finder height,2:Apply corrections to origin height</field>
+<field name="RebootRequired">True</field>
+</param>
 </parameters>
 <parameters name="FENCE_">
 <param humanName="Fence enable/disable" name="FENCE_ENABLE" documentation="Allows you to enable (1) or disable (0) the fence functionality" user="Standard">
@@ -3017,6 +3106,34 @@
 <field name="Increment">1</field>
 <field name="Units">m</field>
 <field name="UnitText">meters</field>
+</param>
+</parameters>
+<parameters name="FHLD">
+<param humanName="Flow (horizontal) P gain" name="FHLD_XY_P" documentation="Flow (horizontal) P gain." user="Advanced">
+<field name="Range">0.1 6.0</field>
+<field name="Increment">0.1</field>
+</param>
+<param humanName="Flow I gain" name="FHLD_XY_I" documentation="Flow I gain" user="Advanced">
+<field name="Range">0.02 1.00</field>
+<field name="Increment">0.01</field>
+</param>
+<param humanName="Flow integrator maximum" name="FHLD_XY_IMAX" documentation="Flow integrator maximum" user="Advanced">
+<field name="Range">0 4500</field>
+<field name="Increment">10</field>
+<field name="Units">cdeg</field>
+<field name="UnitText">centidegrees</field>
+</param>
+<param humanName="Flow Max" name="FHLD_FLOW_MAX" documentation="Controls maximum apparent flow rate in flowhold" user="Standard">
+<field name="Range">0.1 2.5</field>
+</param>
+<param humanName="Flow Filter Frequency" name="FHLD_FILT_HZ" documentation="Filter frequency for flow data" user="Standard">
+<field name="Range">1 100</field>
+</param>
+<param humanName="Minimum flow quality" name="FHLD_MIN_QUAL" documentation="Minimum flow quality to use flow position hold" user="Standard">
+<field name="Range">0 255</field>
+</param>
+<param humanName="Flow Speed" name="FHLD_FLOW_SPEED" documentation="Controls maximum pilot speed in FlowMode" user="Standard">
+<field name="Range">0.1 2.5</field>
 </param>
 </parameters>
 <parameters name="FLOW">
@@ -3330,17 +3447,17 @@
 <value code="2">EPM</value>
 </values>
 </param>
-<param humanName="Gripper Grab PWM" name="GRIP_GRAB" documentation="PWM value sent to Gripper to initiate grabbing the cargo" user="Advanced">
+<param humanName="Gripper Grab PWM" name="GRIP_GRAB" documentation="PWM value in microseconds sent to Gripper to initiate grabbing the cargo" user="Advanced">
 <field name="Range">1000 2000</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Gripper Release PWM" name="GRIP_RELEASE" documentation="PWM value sent to Gripper to release the cargo" user="Advanced">
+<param humanName="Gripper Release PWM" name="GRIP_RELEASE" documentation="PWM value in microseconds sent to Gripper to release the cargo" user="Advanced">
 <field name="Range">1000 2000</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Neutral PWM" name="GRIP_NEUTRAL" documentation="PWM value sent to grabber when not grabbing or releasing" user="Advanced">
+<param humanName="Neutral PWM" name="GRIP_NEUTRAL" documentation="PWM value in microseconds sent to grabber when not grabbing or releasing" user="Advanced">
 <field name="Range">1000 2000</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
@@ -3387,7 +3504,7 @@
 <value code=" 1">H1 Mechanical Mixing</value>
 </values>
 </param>
-<param humanName="External Gyro Gain" name="H_GYR_GAIN" documentation="PWM sent to external gyro on ch7 when tail type is Servo w/ ExtGyro" user="Standard">
+<param humanName="External Gyro Gain" name="H_GYR_GAIN" documentation="PWM in microseconds sent to external gyro on ch7 when tail type is Servo w/ ExtGyro" user="Standard">
 <field name="Range">0 1000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -3409,13 +3526,13 @@
 <value code="1">Flybar</value>
 </values>
 </param>
-<param humanName="Direct Drive VarPitch Tail ESC speed" name="H_TAIL_SPEED" documentation="Direct Drive VarPitch Tail ESC speed.  Only used when TailType is DirectDrive VarPitch" user="Standard">
+<param humanName="Direct Drive VarPitch Tail ESC speed" name="H_TAIL_SPEED" documentation="Direct Drive VarPitch Tail ESC speed in PWM microseconds.  Only used when TailType is DirectDrive VarPitch" user="Standard">
 <field name="Range">0 1000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="External Gyro Gain for ACRO" name="H_GYR_GAIN_ACRO" documentation="PWM sent to external gyro on ch7 when tail type is Servo w/ ExtGyro. A value of zero means to use H_GYR_GAIN" user="Standard">
+<param humanName="External Gyro Gain for ACRO" name="H_GYR_GAIN_ACRO" documentation="PWM in microseconds sent to external gyro on ch7 when tail type is Servo w/ ExtGyro. A value of zero means to use H_GYR_GAIN" user="Standard">
 <field name="Range">0 1000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -3510,37 +3627,37 @@
 <value code="1">Normal</value>
 </values>
 </param>
-<param humanName="Collective Pitch Minimum for rear swashplate" name="H_COL2_MIN" documentation="Lowest possible servo position for the rear swashplate" user="Standard">
+<param humanName="Collective Pitch Minimum for rear swashplate" name="H_COL2_MIN" documentation="Lowest possible servo position in PWM microseconds for the rear swashplate" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Collective Pitch Maximum for rear swashplate" name="H_COL2_MAX" documentation="Highest possible servo position for the rear swashplate" user="Standard">
+<param humanName="Collective Pitch Maximum for rear swashplate" name="H_COL2_MAX" documentation="Highest possible servo position in PWM microseconds for the rear swashplate" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Collective Pitch Mid-Point for rear swashplate" name="H_COL2_MID" documentation="Swash servo position corresponding to zero collective pitch for the rear swashplate (or zero lift for Asymmetrical blades)" user="Standard">
+<param humanName="Collective Pitch Mid-Point for rear swashplate" name="H_COL2_MID" documentation="Swash servo position in PWM microseconds corresponding to zero collective pitch for the rear swashplate (or zero lift for Asymmetrical blades)" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Collective Pitch Minimum" name="H_COL_MIN" documentation="Lowest possible servo position for the swashplate" user="Standard">
+<param humanName="Collective Pitch Minimum" name="H_COL_MIN" documentation="Lowest possible servo position in PWM microseconds for the swashplate" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Collective Pitch Maximum" name="H_COL_MAX" documentation="Highest possible servo position for the swashplate" user="Standard">
+<param humanName="Collective Pitch Maximum" name="H_COL_MAX" documentation="Highest possible servo position in PWM microseconds for the swashplate" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Collective Pitch Mid-Point" name="H_COL_MID" documentation="Swash servo position corresponding to zero collective pitch (or zero lift for Asymmetrical blades)" user="Standard">
+<param humanName="Collective Pitch Mid-Point" name="H_COL_MID" documentation="Swash servo position in PWM microseconds corresponding to zero collective pitch (or zero lift for Asymmetrical blades)" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -3555,7 +3672,7 @@
 <value code="4">Min collective</value>
 </values>
 </param>
-<param humanName="External Motor Governor Setpoint" name="H_RSC_SETPOINT" documentation="PWM passed to the external motor governor when external governor is enabled" user="Standard">
+<param humanName="External Motor Governor Setpoint" name="H_RSC_SETPOINT" documentation="PWM in microseconds passed to the external motor governor when external governor is enabled" user="Standard">
 <field name="Range">0 1000</field>
 <field name="Increment">10</field>
 <field name="Units">PWM</field>
@@ -3568,7 +3685,7 @@
 <value code=" 3">Throttle Curve</value>
 </values>
 </param>
-<param humanName="Landing Collective Minimum" name="H_LAND_COL_MIN" documentation="Minimum collective position while landed or landing" user="Standard">
+<param humanName="Landing Collective Minimum" name="H_LAND_COL_MIN" documentation="Minimum collective position in PWM microseconds while landed or landing" user="Standard">
 <field name="Range">0 500</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -3873,15 +3990,17 @@
 </param>
 <param humanName="Fast sampling mask" name="INS_FAST_SAMPLE" documentation="Mask of IMUs to enable fast sampling on, if available" user="Advanced">
 </param>
+<param humanName="Notch filter" name="INS_NOTCH_" documentation="Gyro notch filter" user="Advanced">
+</param>
 </parameters>
 <parameters name="LGR_">
-<param humanName="Landing Gear Servo Retracted PWM Value" name="LGR_SERVO_RTRACT" documentation="Servo PWM value when landing gear is retracted" user="Standard">
+<param humanName="Landing Gear Servo Retracted PWM Value" name="LGR_SERVO_RTRACT" documentation="Servo PWM value in microseconds when landing gear is retracted" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Landing Gear Servo Deployed PWM Value" name="LGR_SERVO_DEPLOY" documentation="Servo PWM value when landing gear is deployed" user="Standard">
+<param humanName="Landing Gear Servo Deployed PWM Value" name="LGR_SERVO_DEPLOY" documentation="Servo PWM value in microseconds when landing gear is deployed" user="Standard">
 <field name="Range">1000 2000</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4258,7 +4377,7 @@
 </param>
 </parameters>
 <parameters name="MOT_">
-<param humanName="Matrix Yaw Min" name="MOT_YAW_HEADROOM" documentation="Yaw control is given at least this pwm range" user="Advanced">
+<param humanName="Matrix Yaw Min" name="MOT_YAW_HEADROOM" documentation="Yaw control is given at least this pwm in microseconds range" user="Advanced">
 <field name="Range">0 500</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
@@ -4289,16 +4408,16 @@
 <value code="0">Normal</value>
 <value code="1">OneShot</value>
 <value code="2">OneShot125</value>
-<value code="3">Brushed16kHz</value>
+<value code="3">Brushed</value>
 </values>
 <field name="RebootRequired">True</field>
 </param>
-<param humanName="PWM output miniumum" name="MOT_PWM_MIN" documentation="This sets the min PWM output value that will ever be output to the motors, 0 = use input RC3_MIN" user="Advanced">
+<param humanName="PWM output miniumum" name="MOT_PWM_MIN" documentation="This sets the min PWM output value in microseconds that will ever be output to the motors, 0 = use input RC3_MIN" user="Advanced">
 <field name="Range">0 2000</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="PWM output maximum" name="MOT_PWM_MAX" documentation="This sets the max PWM value that will ever be output to the motors, 0 = use input RC3_MAX" user="Advanced">
+<param humanName="PWM output maximum" name="MOT_PWM_MAX" documentation="This sets the max PWM value in microseconds that will ever be output to the motors, 0 = use input RC3_MAX" user="Advanced">
 <field name="Range">0 2000</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
@@ -4373,6 +4492,13 @@
 <value code="0">Disable</value>
 <value code="1">ssd1306</value>
 <value code="2">sh1106</value>
+</values>
+</param>
+<param humanName="OreoLED Theme" name="NTF_OREO_THEME" documentation="Enable/Disable Solo Oreo LED driver, 0 to disable, 1 for Aircraft theme, 2 for Rover theme" user="Advanced">
+<values>
+<value code="0">Disabled</value>
+<value code="1">Aircraft</value>
+<value code="2">Rover</value>
 </values>
 </param>
 </parameters>
@@ -4568,19 +4694,19 @@
 </param>
 </parameters>
 <parameters name="RC10_">
-<param humanName="RC min PWM" name="RC10_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC10_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC10_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC10_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC10_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC10_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4592,26 +4718,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC10_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC10_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC11_">
-<param humanName="RC min PWM" name="RC11_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC11_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC11_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC11_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC11_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC11_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4623,26 +4749,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC11_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC11_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC12_">
-<param humanName="RC min PWM" name="RC12_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC12_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC12_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC12_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC12_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC12_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4654,26 +4780,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC12_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC12_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC13_">
-<param humanName="RC min PWM" name="RC13_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC13_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC13_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC13_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC13_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC13_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4685,26 +4811,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC13_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC13_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC14_">
-<param humanName="RC min PWM" name="RC14_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC14_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC14_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC14_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC14_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC14_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4716,26 +4842,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC14_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC14_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC15_">
-<param humanName="RC min PWM" name="RC15_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC15_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC15_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC15_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC15_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC15_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4747,26 +4873,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC15_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC15_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC16_">
-<param humanName="RC min PWM" name="RC16_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC16_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC16_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC16_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC16_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC16_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4778,26 +4904,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC16_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC16_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC1_">
-<param humanName="RC min PWM" name="RC1_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC1_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC1_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC1_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC1_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC1_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4809,26 +4935,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC1_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC1_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC2_">
-<param humanName="RC min PWM" name="RC2_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC2_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC2_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC2_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC2_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC2_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4840,26 +4966,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC2_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC2_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC3_">
-<param humanName="RC min PWM" name="RC3_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC3_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC3_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC3_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC3_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC3_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4871,26 +4997,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC3_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC3_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC4_">
-<param humanName="RC min PWM" name="RC4_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC4_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC4_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC4_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC4_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC4_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4902,26 +5028,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC4_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC4_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC5_">
-<param humanName="RC min PWM" name="RC5_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC5_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC5_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC5_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC5_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC5_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4933,26 +5059,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC5_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC5_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC6_">
-<param humanName="RC min PWM" name="RC6_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC6_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC6_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC6_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC6_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC6_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4964,26 +5090,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC6_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC6_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC7_">
-<param humanName="RC min PWM" name="RC7_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC7_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC7_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC7_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC7_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC7_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -4995,26 +5121,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC7_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC7_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC8_">
-<param humanName="RC min PWM" name="RC8_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC8_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC8_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC8_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC8_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC8_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -5026,26 +5152,26 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC8_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC8_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
 </parameters>
 <parameters name="RC9_">
-<param humanName="RC min PWM" name="RC9_MIN" documentation="RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC min PWM" name="RC9_MIN" documentation="RC minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC trim PWM" name="RC9_TRIM" documentation="RC trim (neutral) PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC trim PWM" name="RC9_TRIM" documentation="RC trim (neutral) PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="RC max PWM" name="RC9_MAX" documentation="RC maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
+<param humanName="RC max PWM" name="RC9_MAX" documentation="RC maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Advanced">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -5057,7 +5183,7 @@
 <value code="1">Reversed</value>
 </values>
 </param>
-<param humanName="RC dead-zone" name="RC9_DZ" documentation="dead zone around trim or bottom" user="Advanced">
+<param humanName="RC dead-zone" name="RC9_DZ" documentation="PWM dead zone in microseconds around trim or bottom" user="Advanced">
 <field name="Range">0 200</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
@@ -5790,12 +5916,12 @@
 </param>
 <param humanName="Receiver RSSI channel number" name="RSSI_CHANNEL" documentation="The channel number where RSSI will be output by the radio receiver (5 and above)." user="Standard">
 </param>
-<param humanName="Receiver RSSI PWM low value" name="RSSI_CHAN_LOW" documentation="This is the PWM value that the radio receiver will put on the RSSI_CHANNEL when the signal strength is the weakest. Since some radio receivers put out inverted values from what you might otherwise expect, this isn't necessarily a lower value than RSSI_CHAN_HIGH. " user="Standard">
+<param humanName="Receiver RSSI PWM low value" name="RSSI_CHAN_LOW" documentation="This is the PWM value in microseconds that the radio receiver will put on the RSSI_CHANNEL when the signal strength is the weakest. Since some radio receivers put out inverted values from what you might otherwise expect, this isn't necessarily a lower value than RSSI_CHAN_HIGH." user="Standard">
 <field name="Range">0 2000</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Receiver RSSI PWM high value" name="RSSI_CHAN_HIGH" documentation="This is the PWM value that the radio receiver will put on the RSSI_CHANNEL when the signal strength is the strongest. Since some radio receivers put out inverted values from what you might otherwise expect, this isn't necessarily a higher value than RSSI_CHAN_LOW. " user="Standard">
+<param humanName="Receiver RSSI PWM high value" name="RSSI_CHAN_HIGH" documentation="This is the PWM value in microseconds that the radio receiver will put on the RSSI_CHANNEL when the signal strength is the strongest. Since some radio receivers put out inverted values from what you might otherwise expect, this isn't necessarily a higher value than RSSI_CHAN_LOW." user="Standard">
 <field name="Range">0 2000</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
@@ -6032,19 +6158,19 @@
 </param>
 </parameters>
 <parameters name="SERVO10_">
-<param humanName="Minimum PWM" name="SERVO10_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO10_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO10_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO10_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO10_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO10_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -6132,19 +6258,19 @@
 </param>
 </parameters>
 <parameters name="SERVO11_">
-<param humanName="Minimum PWM" name="SERVO11_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO11_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO11_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO11_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO11_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO11_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -6232,19 +6358,19 @@
 </param>
 </parameters>
 <parameters name="SERVO12_">
-<param humanName="Minimum PWM" name="SERVO12_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO12_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO12_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO12_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO12_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO12_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -6332,19 +6458,19 @@
 </param>
 </parameters>
 <parameters name="SERVO13_">
-<param humanName="Minimum PWM" name="SERVO13_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO13_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO13_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO13_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO13_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO13_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -6432,19 +6558,19 @@
 </param>
 </parameters>
 <parameters name="SERVO14_">
-<param humanName="Minimum PWM" name="SERVO14_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO14_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO14_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO14_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO14_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO14_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -6532,19 +6658,19 @@
 </param>
 </parameters>
 <parameters name="SERVO15_">
-<param humanName="Minimum PWM" name="SERVO15_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO15_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO15_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO15_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO15_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO15_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -6632,19 +6758,19 @@
 </param>
 </parameters>
 <parameters name="SERVO16_">
-<param humanName="Minimum PWM" name="SERVO16_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO16_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO16_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO16_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO16_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO16_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -6732,19 +6858,19 @@
 </param>
 </parameters>
 <parameters name="SERVO1_">
-<param humanName="Minimum PWM" name="SERVO1_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO1_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO1_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO1_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO1_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO1_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -6832,19 +6958,19 @@
 </param>
 </parameters>
 <parameters name="SERVO2_">
-<param humanName="Minimum PWM" name="SERVO2_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO2_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO2_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO2_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO2_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO2_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -6932,19 +7058,19 @@
 </param>
 </parameters>
 <parameters name="SERVO3_">
-<param humanName="Minimum PWM" name="SERVO3_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO3_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO3_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO3_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO3_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO3_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -7032,19 +7158,19 @@
 </param>
 </parameters>
 <parameters name="SERVO4_">
-<param humanName="Minimum PWM" name="SERVO4_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO4_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO4_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO4_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO4_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO4_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -7132,19 +7258,19 @@
 </param>
 </parameters>
 <parameters name="SERVO5_">
-<param humanName="Minimum PWM" name="SERVO5_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO5_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO5_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO5_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO5_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO5_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -7232,19 +7358,19 @@
 </param>
 </parameters>
 <parameters name="SERVO6_">
-<param humanName="Minimum PWM" name="SERVO6_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO6_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO6_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO6_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO6_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO6_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -7332,19 +7458,19 @@
 </param>
 </parameters>
 <parameters name="SERVO7_">
-<param humanName="Minimum PWM" name="SERVO7_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO7_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO7_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO7_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO7_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO7_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -7432,19 +7558,19 @@
 </param>
 </parameters>
 <parameters name="SERVO8_">
-<param humanName="Minimum PWM" name="SERVO8_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO8_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO8_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO8_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO8_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO8_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -7532,19 +7658,19 @@
 </param>
 </parameters>
 <parameters name="SERVO9_">
-<param humanName="Minimum PWM" name="SERVO9_MIN" documentation="minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Minimum PWM" name="SERVO9_MIN" documentation="minimum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Maximum PWM" name="SERVO9_MAX" documentation="maximum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Maximum PWM" name="SERVO9_MAX" documentation="maximum PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
 <field name="UnitText">PWM in microseconds</field>
 </param>
-<param humanName="Trim PWM" name="SERVO9_TRIM" documentation="Trim PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
+<param humanName="Trim PWM" name="SERVO9_TRIM" documentation="Trim PWM pulse width in microseconds. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit." user="Standard">
 <field name="Range">800 2200</field>
 <field name="Increment">1</field>
 <field name="Units">PWM</field>
@@ -7909,16 +8035,20 @@
 </parameters>
 <parameters name="STAT">
 <param humanName="Boot Count" name="STAT_BOOTCNT" documentation="Number of times board has been booted" user="Standard">
+<field name="ReadOnly">True</field>
 </param>
 <param humanName="Total FlightTime" name="STAT_FLTTIME" documentation="Total FlightTime (seconds)" user="Standard">
+<field name="ReadOnly">True</field>
 <field name="Units">s</field>
 <field name="UnitText">seconds</field>
 </param>
 <param humanName="Total RunTime" name="STAT_RUNTIME" documentation="Total time autopilot has run" user="Standard">
+<field name="ReadOnly">True</field>
 <field name="Units">s</field>
 <field name="UnitText">seconds</field>
 </param>
 <param humanName="Reset time" name="STAT_RESET" documentation="Seconds since January 1st 2016 (Unix epoch+1451606400) since reset (set to 0 to reset statistics)" user="Standard">
+<field name="ReadOnly">True</field>
 <field name="Units">s</field>
 <field name="UnitText">seconds</field>
 </param>
@@ -7994,6 +8124,7 @@
 <value code="18">Throw</value>
 <value code="19">Avoid_ADSB</value>
 <value code="20">Guided_NoGPS</value>
+<value code="21">FlowHold</value>
 </values>
 </param>
 <param humanName="Tmode second mode" name="TMODE_MODE2" documentation="This is the secondary mode. This mode is assumed to require GPS" user="Standard">
@@ -8016,6 +8147,7 @@
 <value code="18">Throw</value>
 <value code="19">Avoid_ADSB</value>
 <value code="20">Guided_NoGPS</value>
+<value code="21">FlowHold</value>
 </values>
 </param>
 <param humanName="Tmode action 1" name="TMODE_ACTION1" documentation="This is the action taken for the left action button" user="Standard">
@@ -8039,6 +8171,12 @@
 <value code="16">Flip</value>
 <value code="17">ModeStabilize</value>
 <value code="18">Disarm</value>
+<value code="19">ToggleMode</value>
+<value code="20">Arm-Land-RTL</value>
+<value code="21">ToggleSimpleMode</value>
+<value code="22">ToggleSuperSimpleMode</value>
+<value code="23">MotorLoadTest</value>
+<value code="24">ModeFlowHold</value>
 </values>
 </param>
 <param humanName="Tmode action 2" name="TMODE_ACTION2" documentation="This is the action taken for the right action button" user="Standard">
@@ -8062,6 +8200,12 @@
 <value code="16">Flip</value>
 <value code="17">ModeStabilize</value>
 <value code="18">Disarm</value>
+<value code="19">ToggleMode</value>
+<value code="20">Arm-Land-RTL</value>
+<value code="21">ToggleSimpleMode</value>
+<value code="22">ToggleSuperSimpleMode</value>
+<value code="23">MotorLoadTest</value>
+<value code="24">ModeFlowHold</value>
 </values>
 </param>
 <param humanName="Tmode action 3" name="TMODE_ACTION3" documentation="This is the action taken for the power button" user="Standard">
@@ -8085,6 +8229,12 @@
 <value code="16">Flip</value>
 <value code="17">ModeStabilize</value>
 <value code="18">Disarm</value>
+<value code="19">ToggleMode</value>
+<value code="20">Arm-Land-RTL</value>
+<value code="21">ToggleSimpleMode</value>
+<value code="22">ToggleSuperSimpleMode</value>
+<value code="23">MotorLoadTest</value>
+<value code="24">ModeFlowHold</value>
 </values>
 </param>
 <param humanName="Tmode action 4" name="TMODE_ACTION4" documentation="This is the action taken for the left action button while the mode button is pressed" user="Standard">
@@ -8108,6 +8258,12 @@
 <value code="16">Flip</value>
 <value code="17">ModeStabilize</value>
 <value code="18">Disarm</value>
+<value code="19">ToggleMode</value>
+<value code="20">Arm-Land-RTL</value>
+<value code="21">ToggleSimpleMode</value>
+<value code="22">ToggleSuperSimpleMode</value>
+<value code="23">MotorLoadTest</value>
+<value code="24">ModeFlowHold</value>
 </values>
 </param>
 <param humanName="Tmode action 5" name="TMODE_ACTION5" documentation="This is the action taken for the right action button while the mode button is pressed" user="Standard">
@@ -8131,6 +8287,12 @@
 <value code="16">Flip</value>
 <value code="17">ModeStabilize</value>
 <value code="18">Disarm</value>
+<value code="19">ToggleMode</value>
+<value code="20">Arm-Land-RTL</value>
+<value code="21">ToggleSimpleMode</value>
+<value code="22">ToggleSuperSimpleMode</value>
+<value code="23">MotorLoadTest</value>
+<value code="24">ModeFlowHold</value>
 </values>
 </param>
 <param humanName="Tmode action 6" name="TMODE_ACTION6" documentation="This is the action taken for the power button while the mode button is pressed" user="Standard">
@@ -8154,6 +8316,134 @@
 <value code="16">Flip</value>
 <value code="17">ModeStabilize</value>
 <value code="18">Disarm</value>
+<value code="19">ToggleMode</value>
+<value code="20">Arm-Land-RTL</value>
+<value code="21">ToggleSimpleMode</value>
+<value code="22">ToggleSuperSimpleMode</value>
+<value code="23">MotorLoadTest</value>
+<value code="24">ModeFlowHold</value>
+</values>
+</param>
+<param humanName="Tmode left action" name="TMODE_LEFT" documentation="This is the action taken for the left button (mode button) being pressed" user="Standard">
+<values>
+<value code="0">None</value>
+<value code="1">TakePhoto</value>
+<value code="2">ToggleVideo</value>
+<value code="3">ModeAcro</value>
+<value code="4">ModeAltHold</value>
+<value code="5">ModeAuto</value>
+<value code="6">ModeLoiter</value>
+<value code="7">ModeRTL</value>
+<value code="8">ModeCircle</value>
+<value code="9">ModeLand</value>
+<value code="10">ModeDrift</value>
+<value code="11">ModeSport</value>
+<value code="12">ModeAutoTune</value>
+<value code="13">ModePosHold</value>
+<value code="14">ModeBrake</value>
+<value code="15">ModeThrow</value>
+<value code="16">Flip</value>
+<value code="17">ModeStabilize</value>
+<value code="18">Disarm</value>
+<value code="19">ToggleMode</value>
+<value code="20">Arm-Land-RTL</value>
+<value code="21">ToggleSimpleMode</value>
+<value code="22">ToggleSuperSimpleMode</value>
+<value code="23">MotorLoadTest</value>
+<value code="24">ModeFlowHold</value>
+</values>
+</param>
+<param humanName="Tmode left long action" name="TMODE_LEFT_LONG" documentation="This is the action taken for a long press of the left button (home button)" user="Standard">
+<values>
+<value code="0">None</value>
+<value code="1">TakePhoto</value>
+<value code="2">ToggleVideo</value>
+<value code="3">ModeAcro</value>
+<value code="4">ModeAltHold</value>
+<value code="5">ModeAuto</value>
+<value code="6">ModeLoiter</value>
+<value code="7">ModeRTL</value>
+<value code="8">ModeCircle</value>
+<value code="9">ModeLand</value>
+<value code="10">ModeDrift</value>
+<value code="11">ModeSport</value>
+<value code="12">ModeAutoTune</value>
+<value code="13">ModePosHold</value>
+<value code="14">ModeBrake</value>
+<value code="15">ModeThrow</value>
+<value code="16">Flip</value>
+<value code="17">ModeStabilize</value>
+<value code="18">Disarm</value>
+<value code="19">ToggleMode</value>
+<value code="20">Arm-Land-RTL</value>
+<value code="21">ToggleSimpleMode</value>
+<value code="22">ToggleSuperSimpleMode</value>
+<value code="23">MotorLoadTest</value>
+<value code="24">ModeFlowHold</value>
+</values>
+</param>
+<param humanName="Stick auto trim limit" name="TMODE_TRIM_AUTO" documentation="This is the amount of automatic stick trim that can be applied when disarmed with sticks not moving. It is a PWM limit value away from 1500" user="Standard">
+<field name="Range">0 100</field>
+</param>
+<param humanName="Tmode right action" name="TMODE_RIGHT" documentation="This is the action taken for the right button (RTL) being pressed" user="Standard">
+<values>
+<value code="0">None</value>
+<value code="1">TakePhoto</value>
+<value code="2">ToggleVideo</value>
+<value code="3">ModeAcro</value>
+<value code="4">ModeAltHold</value>
+<value code="5">ModeAuto</value>
+<value code="6">ModeLoiter</value>
+<value code="7">ModeRTL</value>
+<value code="8">ModeCircle</value>
+<value code="9">ModeLand</value>
+<value code="10">ModeDrift</value>
+<value code="11">ModeSport</value>
+<value code="12">ModeAutoTune</value>
+<value code="13">ModePosHold</value>
+<value code="14">ModeBrake</value>
+<value code="15">ModeThrow</value>
+<value code="16">Flip</value>
+<value code="17">ModeStabilize</value>
+<value code="18">Disarm</value>
+<value code="19">ToggleMode</value>
+<value code="20">Arm-Land-RTL</value>
+<value code="21">ToggleSimpleMode</value>
+<value code="22">ToggleSuperSimpleMode</value>
+<value code="23">MotorLoadTest</value>
+</values>
+</param>
+<param humanName="Tmode flags" name="TMODE_FLAGS" documentation="Bitmask of flags to change the behaviour of tmode. DisarmOnLowThrottle means to disarm if throttle is held down for 1 second when landed. ArmOnHighThrottle means to arm if throttle is above 80% for 1 second. UpgradeToLoiter means to allow takeoff in LOITER mode by switching to ALT_HOLD, then auto-upgrading to LOITER once GPS is available. RTLStickCancel means that on large stick inputs in RTL mode that LOITER mode is engaged. AltLimitFence means to limit climb in all altitude controlled modes to not take the copter above the fence altitude, even if the fence is disabled." user="Standard">
+<field name="Bitmask">0:DisarmOnLowThrottle,1:ArmOnHighThrottle,2:UpgradeToLoiter,3:RTLStickCancel,4:AltLimitFence</field>
+</param>
+<param humanName="Min voltage for output limiting" name="TMODE_VMIN" documentation="This is the battery voltage below which no output limiting is done" user="Advanced">
+<field name="Range">0 5</field>
+<field name="Increment">0.01</field>
+</param>
+<param humanName="Max voltage for output limiting" name="TMODE_VMAX" documentation="This is the battery voltage above which thrust min is used" user="Advanced">
+<field name="Range">0 5</field>
+<field name="Increment">0.01</field>
+</param>
+<param humanName="Min thrust multiplier" name="TMODE_TMIN" documentation="This sets the thrust multiplier when voltage is high" user="Advanced">
+<field name="Range">0 1</field>
+<field name="Increment">0.01</field>
+</param>
+<param humanName="Max thrust multiplier" name="TMODE_TMAX" documentation="This sets the thrust multiplier when voltage is low" user="Advanced">
+<field name="Range">0 1</field>
+<field name="Increment">0.01</field>
+</param>
+<param humanName="Load test multiplier" name="TMODE_LOAD_MUL" documentation="This scales the load test output, as a value between 0 and 1" user="Advanced">
+<field name="Range">0 1</field>
+<field name="Increment">0.01</field>
+</param>
+<param humanName="Load test filter" name="TMODE_LOAD_FILT" documentation="This filters the load test output. A value of 1 means no filter. 2 means values are repeated once. 3 means values are repeated 3 times, etc" user="Advanced">
+<field name="Range">0 100</field>
+</param>
+<param humanName="Load test type" name="TMODE_LOAD_TYPE" documentation="This sets the type of load test" user="Advanced">
+<values>
+<value code="0">ConstantThrust</value>
+<value code="1">LogReplay1</value>
+<value code="2">LogReplay2</value>
 </values>
 </param>
 </parameters>
