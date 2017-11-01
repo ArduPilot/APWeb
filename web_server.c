@@ -273,7 +273,7 @@ static void connection_process(struct connection_state *c)
  */
 static bool check_origin(const char *origin)
 {
-    if (strcmp(origin, "http://192.168.99.1") == 0) {
+    if (strcmp(origin, "http://10.0.1.128") == 0) {
         // always accept
         return true;
     }
