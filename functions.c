@@ -53,7 +53,12 @@ int uart2_get_baudrate();
 
 static void fc_mavlink_baudrate(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
 {
-    sock_printf(tmpl->sock, "%u", uart2_get_baudrate());
+    int baudrate = uart2_get_baudrate();
+    if (baudrate == -1) {
+        sock_printf(tmpl->sock, "\"Not in use\"");
+    } else {
+        sock_printf(tmpl->sock, "%u", baudrate);
+    }
 }
 
 /*

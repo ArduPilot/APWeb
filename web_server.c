@@ -887,6 +887,9 @@ int main(int argc, char *argv[])
         console_printf("Only one of serial port and udp-in-port (-s and -u) can be supplied");
         exit(1);
     }
+    if (serial_port == NULL) {
+        baudrate = -1;
+    }
 
     // summarily ignore SIGPIPE; without this, if a download is
     // interrupted sock_write's write() call will kill the process
