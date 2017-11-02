@@ -25,6 +25,7 @@
   <button class="tablinks" onclick="openTab(event, 'GPS')">GPS</button>
   <button class="tablinks" onclick="openTab(event, 'EKF')">EKF</button>
   <button class="tablinks" onclick="openTab(event, 'Transmitter')">Transmitter</button>
+  <button class="tablinks" onclick="openTab(event, 'Messages')">Messages</button>
 </div>
 
 <div id="System" class="tabcontent">
@@ -128,6 +129,7 @@ Core system information<p>
         <tr><th>Variable</th><th>Value</th></tr>
         <tr><td>FixType</td><td><div name="MAVLINK:GPS_RAW_INT:fix_type"></div></td></tr>
         <tr><td>Numsats</td><td><div name="MAVLINK:GPS_RAW_INT:satellites_visible"></div></td></tr>
+        <tr><td>EKF Status</td><td><div id="EKF_GPS_STATUS"></div></td></tr>
         <tr><td>Latitude (GPS)</td><td><div name="MAVLINK:GPS_RAW_INT:lat"></div></td></tr>
         <tr><td>Longitude (GPS)</td><td><div name="MAVLINK:GPS_RAW_INT:lon"></div></td></tr>
         <tr><td>Altitude (AMSL)</td><td><div name="MAVLINK:GPS_RAW_INT:alt"></div></td></tr>
@@ -247,17 +249,26 @@ refresh_camera();
     function motor_test(motornum) {
         var motorpower = document.getElementById("motor_power").value;
         var testtime = document.getElementById("test_time").value;
-        mavlink_command_long_send(MAV_CMD_DO_MOTOR_TEST, 0, motornum, 0, motorpower, testtime);
+        var motorcount = 0;
+        if (motornum == 0) {
+            motornum = 1;
+            motorcount = 4;
+        }
+        mavlink_command_long_send(MAV_CMD_DO_MOTOR_TEST, 0, motornum, 0, motorpower, testtime, motorcount);
     }
   </script>
 
-Select motor to test, along with test power level (as a percentage) and test time in seconds.
+Select motor to test, along with test power level (as a percentage)
+and test time in seconds. If you choose "All Motors" then all 4 motors
+will come on in sequence, starting with the front-right motor and
+proceeding clockwise from there.
 
     <p>
     <input type="submit" name="action" value="Front Right" onclick="motor_test(1);">
     <input type="submit" name="action" value="Rear Right " onclick="motor_test(2);">
     <input type="submit" name="action" value="Rear Left"   onclick="motor_test(3);">
     <input type="submit" name="action" value="Front Left"  onclick="motor_test(4);">
+    <input type="submit" name="action" value="All Motors"  onclick="motor_test(0);">
 
     <p>
   Test Power
@@ -290,12 +301,20 @@ Select motor to test, along with test power level (as a percentage) and test tim
 
 </div>
 
+<div id="Messages" class="tabcontent">
+
+  <h2>Flight Controller Messages</h2>
+
+<textarea id="STATUSTEXT" cols="80" rows="20" readonly></textarea>
+
+</div>
+
   Refresh rate:&nbsp;
   <select name="refresh_rate" id="refresh_rate">
-    <option value="1" selected>1</option>
+    <option value="1">1</option>
     <option value="2">2</option>
     <option value="3">3</option>
-    <option value="4">4</option>
+    <option value="4" selected>4</option>
     <option value="5">5</option>
     <option value="6">6</option>
     <option value="7">7</option>
@@ -308,6 +327,7 @@ Select motor to test, along with test power level (as a percentage) and test tim
 <p><a href="/index.html">home</a>
 
 <script type="text/javascript">
+
 create_chart("accel_canvas", ["MAVLINK:RAW_IMU:xacc", "MAVLINK:RAW_IMU:yacc", "MAVLINK:RAW_IMU:zacc"]);
 create_chart("gyro_canvas",  ["MAVLINK:RAW_IMU:xgyro", "MAVLINK:RAW_IMU:ygyro", "MAVLINK:RAW_IMU:zgyro"]);
 create_chart("mag_canvas",   ["MAVLINK:RAW_IMU:xmag", "MAVLINK:RAW_IMU:ymag", "MAVLINK:RAW_IMU:zmag"]);
@@ -315,7 +335,9 @@ create_chart("mag_canvas",   ["MAVLINK:RAW_IMU:xmag", "MAVLINK:RAW_IMU:ymag", "M
 create_chart("pressure_canvas",   ["MAVLINK:SCALED_PRESSURE:press_abs"]);
 create_chart("temperature_canvas",["MAVLINK:SCALED_PRESSURE:temperature"]);
 create_chart("gps_canvas",        ["MAVLINK:GPS2_RAW:vel","MAVLINK:GPS2_RAW:eph","MAVLINK:GPS2_RAW:epv"]);
-create_chart("tx_canvas",         ["MAVLINK:RC_CHANNELS_RAW:chan1_raw","MAVLINK:RC_CHANNELS_RAW:chan2_raw","MAVLINK:RC_CHANNELS_RAW:chan3_raw","MAVLINK:RC_CHANNELS_RAW:chan4_raw"]);
+create_chart("tx_canvas",         ["MAVLINK:RC_CHANNELS:chan1_raw","MAVLINK:RC_CHANNELS:chan2_raw","MAVLINK:RC_CHANNELS:chan3_raw","MAVLINK:RC_CHANNELS:chan4_raw"]);
+
+var have_3d_fix = false;
 
 /* called after a tab is clicked */
 function tab_clicked(tabName) {
@@ -329,8 +351,49 @@ function tab_clicked(tabName) {
 // setup default Tab
 document.getElementById("defaultTab").click();
 
-// callback for filling in buttons
-function button_callback(mavlink) {
+last_statustext_seq = -1;
+
+// callback for filling in mavlink fields
+function mavlink_callback(mavlink) {
+    // pad dates with leading zeros
+    function two_pad(v) {
+        if (v >= 10) {
+            return v;
+        }
+        return "0" + v;
+    }
+
+    if (mavlink.EKF_STATUS_REPORT != null) {
+        var flags = mavlink.EKF_STATUS_REPORT.flags;
+        var d = document.getElementById("EKF_GPS_STATUS");
+        var h = '<b style="color:red">bad</b>';
+        if ((flags & 0x30) == 0x30) {
+            h = '<b style="color:green">good</b>';
+        }
+        d.innerHTML = h;
+    }
+    
+    if (mavlink.STATUSTEXT != null) {
+        if (mavlink.STATUSTEXT._seq != last_statustext_seq) {
+            last_statustext_seq = mavlink.STATUSTEXT._seq;
+            var d = new Date();
+            d.setSeconds(d.getSeconds() - (mavlink.STATUSTEXT._age/1000));
+            var tstring = two_pad(d.getHours()) + ":" + two_pad(d.getMinutes()) + ":" + two_pad(d.getSeconds());
+            var text = tstring + " " + mavlink.STATUSTEXT.text + "\r\n";
+            document.getElementById("STATUSTEXT").value += text;
+        }
+    }
+
+    if (mavlink.GPS_RAW_INT != null && mavlink.GPS_RAW_INT.fix_type >= 3) {
+        // save position when available
+        if (!have_3d_fix) {
+            have_3d_fix = true;
+            var gps_pos = [mavlink.GPS_RAW_INT.lat*1.0e-7, mavlink.GPS_RAW_INT.lon*1.0e-7, mavlink.GPS_RAW_INT.alt/10];
+            console.log("Saving last_position " + gps_pos);
+            db_store('last_position', gps_pos);
+        }
+    }
+    
     // decode buttons from channel values
     if (mavlink.RC_CHANNELS == null) {
         return;
@@ -339,14 +402,24 @@ function button_callback(mavlink) {
     var chan6 = mavlink.RC_CHANNELS.chan6_raw;
     var chan7 = mavlink.RC_CHANNELS.chan7_raw;
     var left_button, right_button, left_shoulder_button, right_shoulder_button, power_button;
+    var rc_ok = (mavlink.SYS_STATUS.onboard_control_sensors_health & MAV_SYS_STATUS_SENSOR_RC_RECEIVER) != 0;
+    var pressed_str = { false: "off", true: '<b style="color:green">on</b>' }
+
     right_button = (chan6 > 1800);
     left_button = (chan5 > 2050) || (chan5 > 1050 && chan5 < 1150);
 
     var bits = Math.round((chan7 - 1000) / 100);
-    left_shoulder_button = ((bits & 1) != 0);
-    right_shoulder_button = ((bits & 2) != 0);
-    power_button = ((bits & 4) != 0);
-    var pressed_str = { false: "off", true: '<b style="color:green">on</b>' }
+    if (chan7 < 1000 || !rc_ok) {
+        left_shoulder_button = false;
+        right_shoulder_button = false;
+        power_button = false;
+        document.getElementById("rc_ok").innerHTML = '<b style="color:red">OFF</b>';
+    } else {
+        left_shoulder_button = ((bits & 1) != 0);
+        right_shoulder_button = ((bits & 2) != 0);
+        power_button = ((bits & 4) != 0);
+        document.getElementById("rc_ok").innerHTML = '<b style="color:green">OK</b>';
+    }
     
     document.getElementById("left_button").innerHTML = pressed_str[left_button];
     document.getElementById("right_button").innerHTML = pressed_str[right_button];
@@ -355,7 +428,9 @@ function button_callback(mavlink) {
     document.getElementById("power_button").innerHTML = pressed_str[power_button];
 }
 
-fill_mavlink_ids({ 'chart_lines' : chart_lines, 'callback_fn' : button_callback });
+fill_mavlink_ids({ 'chart_lines' : chart_lines,
+                   'callback_fn' : mavlink_callback,
+                   'extra_msgs' : ['STATUSTEXT'] });
 
 // poll system information at 1Hz
 ajax_json_poll_fill(drone_url + "/ajax/sysinfo.json", 1000);
