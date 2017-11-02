@@ -41,6 +41,45 @@ for (var r in scaling) {
     scaling_re[r] = new RegExp(r);
 }
 
+// from common.xml:
+// var MAV_DATA_STREAM_ALL = 0;
+const stream_ids = {
+    MAV_DATA_STREAM_RAW_SENSORS : 1,
+    MAV_DATA_STREAM_EXTENDED_STATUS : 2,
+    MAV_DATA_STREAM_RC_CHANNELS : 3,
+    MAV_DATA_STREAM_RAW_CONTROLLER : 4,
+    MAV_DATA_STREAM_POSITION : 6,
+    MAV_DATA_STREAM_EXTRA1 : 10,
+    MAV_DATA_STREAM_EXTRA2 : 11,
+    MAV_DATA_STREAM_EXTRA3 : 12
+}
+
+const stream_for_msg = {
+    'RAW_IMU' : "MAV_DATA_STREAM_RAW_SENSORS",
+    'GPS_RAW_INT' : "MAV_DATA_STREAM_EXTENDED_STATUS",
+    'GLOBAL_POSITION_INT' : "MAV_DATA_STREAM_POSITION",
+    'ATTITUDE' : "MAV_DATA_STREAM_EXTRA1",
+    'SCALED_PRESSURE' : "MAV_DATA_STREAM_RAW_SENSORS",
+    'GPS2_RAW' : "MAV_DATA_STREAM_EXTENDED_STATUS",
+    'SYS_STATUS' : "MAV_DATA_STREAM_EXTENDED_STATUS"
+}
+const not_stream_msg = {
+    'STATUSTEXT' : 1
+}
+
+const param_for_stream = {
+    MAV_DATA_STREAM_RAW_SENSORS : 'RAW_SENS',
+    MAV_DATA_STREAM_EXTENDED_STATUS : 'EXT_STAT',
+    MAV_DATA_STREAM_RC_CHANNELS : 'RC_CHAN',
+    MAV_DATA_STREAM_RAW_CONTROLLER : 'RAW_CTRL',
+    MAV_DATA_STREAM_POSITION : 'POSITION',
+    MAV_DATA_STREAM_EXTRA1 : 'EXTRA1',
+    MAV_DATA_STREAM_EXTRA2 : 'EXTRA2',
+    MAV_DATA_STREAM_EXTRA3 : 'EXTRA3'
+}
+
+const sr_prefix = "SR2_";
+
 // return scaled variable
 function scale_variable(varname, value) {
     var scale = 1.0;
@@ -60,6 +99,15 @@ function scale_variable(varname, value) {
 }
 
 var mavlink_msg_types = []
+var mavlink_stream_params = []
+
+var sr_parameters = {}
+function fill_sr_parameters(plist) {
+    plist.forEach(function bob(entry) {
+	sr_parameters[entry.name] = entry.value;
+    });
+    return true;
+}
 
 /*
   fill in all divs of form MAVLINK:MSGNAME:field at refresh_ms() rate
@@ -86,7 +134,49 @@ function fill_mavlink_ids(options={}) {
                 mavlink_msg_types.push(msg_name);
             }
         }
+	// determine which streams are required to get the messages we want:
+	var mavlink_streams = {}
+        for (var msg_name in stream_for_msg) {
+	    if (!(msg_name in stream_for_msg)) {
+		if (!(msg_name in not_stream_msg)) {
+		    console.log("No mapping from " + msg_name + "to stream");
+		}
+		continue
+	    }
+	    mavlink_streams[stream_for_msg[msg_name]] = 1;
+	}
+	// determine which parameters need to be set to get the messages we want:
+	var params = {}
+	for (var stream in mavlink_streams) {
+	    if (param_for_stream[stream] == "undefined") {
+		console.log("No mapping from stream " + stream + " to param");
+		continue
+	    }
+	    params[param_for_stream[stream]] = 1;
+	}
+	mavlink_stream_params = Object.keys(params);
+//	console.log("stream_params: " + mavlink_stream_params);
+
+	// start updating our parameter values
+	ajax_json_poll(drone_url + "/ajax/command.json?command1=get_param_list(" + sr_prefix + ")", fill_sr_parameters, 1000);
     }
+    // check refresh rates:
+    var params_to_set = {};
+    mavlink_stream_params.forEach(function x(param) {
+	var required_rate = 1000/refresh_ms();
+	var sr_key = sr_prefix + param;
+	if (sr_parameters[sr_key] == "undefined") {
+	    return;
+	}
+	var current_rate = sr_parameters[sr_key];
+//	console.log("current=" + current_rate + " required=" + required_rate);
+	if (current_rate < required_rate) {
+//	    console.log("update required");
+	    params_to_set[sr_key] = required_rate;
+	}
+    });
+    mavlink_set_params(params_to_set);
+
     var xhr = createCORSRequest("POST", drone_url + "/ajax/command.json");
     var form = new FormData();
     form.append('command1', 'mavlink_message(' + mavlink_msg_types.join() + ')');
