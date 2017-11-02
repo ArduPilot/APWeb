@@ -831,6 +831,7 @@ static int udp_out_open(const char *ip, const int port)
     return res;
 }
 
+void test_config();
 
 /* main program, start listening and answering queries */
 int main(int argc, char *argv[])
@@ -846,6 +847,9 @@ int main(int argc, char *argv[])
 
     // setup default allowed origin
     setup_origin(public_origin);
+
+    /* test_config(); */
+    /* exit(1); */
 
     while ((opt=getopt(argc, argv, "p:s:b:hd:uf:O:")) != -1) {
         switch (opt) {
