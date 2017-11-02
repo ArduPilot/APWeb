@@ -20,20 +20,10 @@ const char *get_upload_message(void)
     return "";
 }
 
-static struct {
-    bool initialised;
-    struct timeval tv;
-} system_time;
-
 // get number of seconds since boot
 long long get_sys_seconds_boot()
 {
-    if (!system_time.initialised) {
-        gettimeofday(&system_time.tv,NULL);
-    }
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-    return tv.tv_sec - system_time.tv.tv_sec;
+    return get_time_boot_ms()/1000;
 }
 
 // get number of milliseconds since boot
