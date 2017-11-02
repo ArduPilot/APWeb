@@ -621,6 +621,12 @@ static void file_upload(struct template_state *tmpl, const char *name, const cha
     const char *fs_filename = cgi->get(cgi, "FILENAME");
 
     console_printf("file_upload: uploadtype=%s filename=%s size=%u\n", uploadtype, filename, size);
+
+    if (get_vehicle_armed()) {
+        set_upload_progress(1);
+        set_upload_message("Vehicle must be disarmed");
+        return;
+    }
     
     if (strcmp(uploadtype, "ArduPilot") == 0) {
         handle_ardupilot_upgrade(tmpl, filename, filedata, size);
