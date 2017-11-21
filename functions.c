@@ -894,10 +894,6 @@ static void nvram_pack_list(struct template_state *tmpl, const char *name, const
     snx_nvram_get_pkg_name_list(pkg_name_info);
     while (pkg_cnt--) {
         const char *pname = (pkg_name_info+pkg_cnt)->name;
-        if (strcmp(pname, "Vdo_IQ") == 0) {
-            // this would cause the Sonix to crash
-            continue;
-        }
         sock_printf(tmpl->sock, "%s\"%s\"", first?"":", ", pname);
         first = false;
     }
