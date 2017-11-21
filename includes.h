@@ -15,9 +15,9 @@
 #include <libmid_fatfs/ff.h>
 #include "socket_ctrl.h"
 #include <generated/snx_sdk_conf.h>
-#include "../talloc.h"
-#include "../dev_console.h"
-#include "../util/print_vprintf.h"
+#include <talloc.h>
+#include <dev_console.h>
+#include <util/print_vprintf.h>
 #else
 #include "linux/includes.h"
 #include "mavlink_core.h"
