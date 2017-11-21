@@ -23,6 +23,7 @@
   <button class="tablinks" onclick="openTab(event, 'Magnetometer')">Magnetometer</button>
   <button class="tablinks" onclick="openTab(event, 'MotorCal')">MotorCal</button>
   <button class="tablinks" onclick="openTab(event, 'Combined')">Combined</button>
+  <button class="tablinks" onclick="openTab(event, 'Barometer')">Barometer</button>
 </div>
 
 <div id="Accelerometer" class="tabcontent">
@@ -399,6 +400,37 @@ Battery Voltage&nbsp;<div name="MAVLINK:SYS_STATUS:voltage_battery">--</div><br>
   </tr>
   </table>
 </div>
+
+<div id="Barometer" class="tabcontent">
+
+<h1>Barometer Calibration</h1>
+
+The barometer is automatically calibrated for temperature variation
+when the frame is sitting still and is disarmed. This is stored as an
+exponent which is applied to the barometer correction curve with
+temperature.<p>
+
+There are some cases where this calibration can learn an incorrect value,
+especially when it learns in an area with varying pressure, such as an
+air-conditioned room. In that case you can reset the calibration by
+pressing the button below.<p>
+
+<table class="values">
+  <tr><th>Setting</th><th>Value</th></tr>
+  <tr><td>Exponent</td><td><div id="TCAL_BARO_EXP"></div></td></tr>
+  <tr><td>Temperature Min</td><td><div id="TCAL_TEMP_MIN"></div></td></tr>
+  <tr><td>Temperature Max</td><td><div id="TCAL_TEMP_MAX"></div></td></tr>
+</table>
+    <p>
+    
+<table class="values">
+  <tr><th>Sensor</th><th>Value</th></tr>
+  <tr><td>Pressure Absolute</td><td><div name="MAVLINK:SCALED_PRESSURE:press_abs"></div></td></tr>
+  <tr><td>Pressure Relative</td><td><div name="MAVLINK:SCALED_PRESSURE:press_diff"></div></td></tr>
+  <tr><td>Temperature</td><td><div name="MAVLINK:SCALED_PRESSURE:temperature"></div></td></tr>
+</table>
+
+<p><input type="submit" name="action" value="Reset Barometer Calibration" onclick="reset_baro_cal();"><br>
 
 <hr>
 <p><a href="index.html">home</a>
@@ -957,7 +989,7 @@ function combined_accel_cal_callback(result) {
                                           combined_mag_callback, 5000);
         }, 2000);
     } else {
-        if (cfg_vars["SSID"] != null) {
+        if (config_vars["SSID"] != null) {
             append_message_color("combined_message", "red", "ERR Missing mag values in WIFI.TXT");            
             return;
         }
@@ -1074,7 +1106,7 @@ function mavlink_callback(mavlink) {
 document.getElementById("field_table").style.display = "none";
 
 // fill in parameters at 2Hz
-ajax_json_poll(drone_url + "/ajax/command.json?command1=get_param_list(INS_,COMPASS_)", fill_parameters, 500);
+ajax_json_poll(drone_url + "/ajax/command.json?command1=get_param_list(INS_,COMPASS_,TCAL_)", fill_parameters, 500);
 
 // fill in SSID info
 ajax_json_poll(drone_url + "/ajax/sysinfo.json", fill_ssid, 3000);
@@ -1111,6 +1143,16 @@ function set_last_calibration(cal) {
     console.log("Set last_calibration " + cal);
 }
 
+function reset_baro_cal() {
+    // reset barometer calibration
+    var commands = [];
+    commands.push("mavlink_message_send(PARAM_SET,0,0,TCAL_BARO_EXP,0)");
+    commands.push("mavlink_message_send(PARAM_SET,0,0,TCAL_TEMP_MIN,0)");
+    commands.push("mavlink_message_send(PARAM_SET,0,0,TCAL_TEMP_MAX,0)");
+    command_send(commands);
+}
+
+                              
 db_fetch('last_calibration', set_last_calibration);
 
 </script>
