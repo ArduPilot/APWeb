@@ -2150,6 +2150,7 @@
 <value code="0">Disabled</value>
 <value code="1">Internal-Learning</value>
 <value code="2">EKF-Learning</value>
+<value code="3">InFlight-Learning</value>
 </values>
 </param>
 <param humanName="Use compass for yaw" name="COMPASS_USE" documentation="Enable or disable the use of the compass (instead of the GPS) for determining heading" user="Advanced">
@@ -2790,6 +2791,12 @@
 <param humanName="Bitmask control of EKF reference height correction" name="EK2_OGN_HGT_MASK" documentation="When a height sensor other than GPS is used as the primary height source by the EKF, the position of the zero height datum is defined by that sensor and its frame of reference. If a GPS height measurement is also available, then the height of the WGS-84 height datum used by the EKF can be corrected so that the height returned by the getLLH() function is compensated for primary height sensor drift and change in datum over time. The first two bit positions control when the height datum will be corrected. Correction is performed using a Bayes filter and only operates when GPS quality permits. The third bit position controls where the corrections to the GPS reference datum are applied. Corrections can be applied to the local vertical position (default) or to the reported EKF origin height." user="Advanced">
 <field name="Bitmask">0:Correct when using Baro height,1:Correct when using range finder height,2:Apply corrections to origin height</field>
 <field name="RebootRequired">True</field>
+</param>
+<param humanName="Mag earth-field type" name="EK2_MAG_EF_TYPE" documentation="This sets the source of the earth field vector for magnetometer fusion. When set to MeasuredField the declination is obtained from the declination tables and the inclination and intensity comes from the current sensor value. When set to Tables all 3 components of the earth-field come from the world magnetic model tables." user="Advanced">
+<values>
+<value code="0">MeasuredField</value>
+<value code="1">Tables</value>
+</values>
 </param>
 </parameters>
 <parameters name="EK3_">
