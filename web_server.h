@@ -4,8 +4,8 @@
 #include <FreeRTOS.h>
 #include <bsp.h>
 #include <task.h>
-#include "../dev_console.h"
-#include "../mavlink_wifi.h"
+#include <dev_console.h>
+#include <mavlink_wifi.h>
 #else
 #include <stdio.h>
 #include <stdlib.h>

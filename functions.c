@@ -14,13 +14,13 @@
 #endif
 
 #ifdef SYSTEM_FREERTOS
-#include "../mavlink_wifi.h"
+#include <mavlink_wifi.h>
 #include "video_main.h"
 #include <libmid_fwupgrade/fwupgrade.h>
 #include <libmid_nvram/snx_mid_nvram.h>
 #include <wifi/wifi_api.h>
-#include "../tx_upload.h"
-#include "../ublox.h"
+#include <tx_upload.h>
+#include <ublox.h>
 #include "files/version.h"
 #include <uart/uart.h>
 #include <libmid_isp/snx_mid_isp.h>
