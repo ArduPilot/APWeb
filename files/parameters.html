@@ -17,7 +17,9 @@ Parameter Category:&nbsp
 </select>
 
 <p><input type="submit" name="action" value="Refresh" onclick="refresh();">&nbsp;
-<input type="text" id="search", onkeyup="search_change()" placeholder="Search parameters ...">
+<input type="text" id="search", onkeyup="search_change()" placeholder="Search parameters ..."><br>
+<input type="checkbox" id='show_only_changed' onchange="search_change()">Only show changed values<br>
+<input type="checkbox" id='show_calibration' onchange="search_change()">Show calibration parameters<br>
 
 <p><div id="message"></div>
 
@@ -25,6 +27,10 @@ Parameter Category:&nbsp
   <tr><th>Name</th><th class="alnright">Value</th><th>Options</th><th>Full Name</th><th>Default</th><th>Description</th></tr>
 </table>
 
+<hr>
+You can restore the defaults for the displayed parameters by clicking
+on the button below.
+<p><input type="submit" name="action" value="Restore Defaults" onclick="restore_defaults();"><br>
 <hr>
 <p><a href="index.html">home</a>
 
@@ -170,13 +176,57 @@ Parameter Category:&nbsp
         }
     }
 
-    function show_hide(tr, search) {
+    function is_calibration_parameter(name) {
+        var cal_params = [
+                /^INS_GYR.*OFFS_/,
+                /^INS_ACC.*OFFS_/,
+                /^INS_ACC.*SCAL_/,
+                /^COMPASS_OFS_/,
+                /^COMPASS_DIA_/,
+                /^COMPASS_ODI_/,
+                /^COMPASS_PMOT[1234]_/,
+                /^RC[1234]_TRIM/,
+                /^STAT_/,
+                /^TCAL_TEMP_/,
+                /^TCAL_BARO_EXP/,
+                /^GND_ABS/,
+                /^GND_TEMP/,
+        ];
+        var ncal = cal_params.length;
+        for (var i=0; i<ncal; i++) {
+            if (cal_params[i].test(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function is_displayed(tr, search) {
         var name = tr.cells[0].innerHTML;
         var humanName = tr.cells[3].innerHTML.toUpperCase();
         var documentation = tr.cells[4].innerHTML.toUpperCase();
+        var show = false;
         if (name.indexOf(search) > -1 ||
             humanName.indexOf(search) > -1 ||
             documentation.indexOf(search) > -1) {
+            show = true;
+        }
+        if (show && document.getElementById("show_only_changed").checked) {
+            var value = document.getElementById("input:" + name).value;
+            if (param_defaults[name] && value == param_defaults[name]) {
+                show = false;
+            }
+        }
+        if (show && !document.getElementById("show_calibration").checked) {
+            if (is_calibration_parameter(name)) {
+                show = false;
+            }
+        }
+        return show;
+    }
+
+    function show_hide(tr, search) {
+        if (is_displayed(tr, search)) {
             tr.style.display = "";
         } else {
             tr.style.display = "none";
@@ -191,6 +241,28 @@ Parameter Category:&nbsp
             var tr = table.rows[i];
             show_hide(tr, search);
         }
+    }
+
+    function restore_defaults() {
+        var search = document.getElementById("search").value.toUpperCase();
+        var table = document.getElementById("param_table");
+        var nrows = table.rows.length;
+        document.getElementById("message").innerHTML = '';
+        for (var i=1; i<nrows; i++) {
+            var tr = table.rows[i];
+            if (is_displayed(tr, search)) {
+                var name = tr.cells[0].innerHTML;
+                var value = document.getElementById("input:" + name).value;
+                var default_value = param_defaults[name];
+                if (param_defaults[name] && value != default_value) {
+                    document.getElementById("message").innerHTML += '<b style="color:blue">Changing ' + name + " to " + default_value + '</b><br>';
+                    console.log("Setting name: " + name + " value: " + default_value);
+                    command_send("mavlink_message_send(PARAM_SET,0,0," + name + "," + default_value + ")");
+                }
+            }
+        }
+        // refresh in 2 seconds
+        setTimeout(function() { refresh(); }, 2000);
     }
 
     // create a select list for a parameter
@@ -237,13 +309,8 @@ Parameter Category:&nbsp
             var tr = table.rows[i];            
             var name = tr.cells[0].innerHTML;
             var pdoc = param_docs[name];
-            var pvalue = param_defaults[name];
-            if (!pvalue) {
-                pvalue = '';
-            }
             if (pdoc) {
                 tr.cells[3].innerHTML = pdoc.humanName;
-                tr.cells[4].innerHTML = pvalue;
                 tr.cells[5].innerHTML = pdoc.documentation;
                 tr.cells[2].innerHTML = '';
                 if (pdoc.values != null) {
@@ -252,6 +319,9 @@ Parameter Category:&nbsp
                 if (pdoc.bitoptions != null) {
                     fill_bitoptions(name, tr, pdoc.bitoptions);
                 }
+            }
+            if (param_defaults[name]) {
+                tr.cells[4].innerHTML = param_defaults[name];
             }
         }
     }
