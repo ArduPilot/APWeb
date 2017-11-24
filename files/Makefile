@@ -1,6 +1,6 @@
 all:
 	@echo "Generating embedded.c"
-	@./embed.py *.html images/*.svg */*.js */*.json */*.css */*.jpg */*.png */*.mjpg data/*.xml
+	@./embed.py *.html images/*.svg */*.js */*.json */*.css */*.jpg */*.png */*.mjpg data/*.xml data/*.parm
 	@echo "Generating manifest"
 	@./gen_manifest.sh
 	@echo "Generating version.h"
