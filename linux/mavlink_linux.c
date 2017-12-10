@@ -323,7 +323,7 @@ void set_system_time_utc_usec(const struct timespec *ts)
 void mavlink_handle_system_time(const mavlink_system_time_t *m)
 {
 #define FC_MIN_DATE 1494314686
-    if (m->time_unix_usec > FC_MIN_DATE) {
+    if (m->time_unix_usec/1000000 > FC_MIN_DATE) {
         struct timespec ts = {
             m->time_unix_usec/1000000,
             (m->time_unix_usec%1000000) * 1000
