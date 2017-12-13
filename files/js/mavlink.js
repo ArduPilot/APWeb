@@ -113,7 +113,8 @@ function fill_sr_parameters(plist) {
 /*
   fill in all divs of form MAVLINK:MSGNAME:field at refresh_ms() rate
 */
-function fill_mavlink_ids(options={}) {
+function fill_mavlink_ids(options) {
+    options = options || {}
     function again() {
         setTimeout(function() { fill_mavlink_ids(options); }, refresh_ms());
     }
@@ -266,7 +267,8 @@ function page_fill_json_html(json) {
 /*
   send a command function
 */
-function command_send(command, options={}) {
+function command_send(command, options) {
+    options = options || {}
     var args = Array.prototype.slice.call(arguments);
     var xhr = createCORSRequest("POST", drone_url + "/ajax/command.json");
     var form = new FormData();
@@ -395,7 +397,8 @@ function ajax_get_callback_binary(url, callback) {
 /*
   poll a URL, calling a callback
 */
-function ajax_poll(url, callback, refresh_ms=1000) {
+function ajax_poll(url, callback, refresh_ms) {
+    refresh_ms = refresh_ms || 1000
     function again() {
         setTimeout(function() { ajax_poll(url, callback, refresh_ms); }, refresh_ms);
     }
@@ -419,7 +422,8 @@ function ajax_poll(url, callback, refresh_ms=1000) {
 /*
   poll a json file and fill document IDs at the given rate
 */
-function ajax_json_poll(url, callback, refresh_ms=1000) {
+function ajax_json_poll(url, callback, refresh_ms) {
+    refresh_ms = refresh_ms || 1000
     function do_callback(responseText) {
         try {
             var json = JSON.parse(responseText);
@@ -436,7 +440,8 @@ function ajax_json_poll(url, callback, refresh_ms=1000) {
 /*
   poll a json file and fill document IDs at the given rate
 */
-function ajax_json_poll_fill(url, refresh_ms=1000) {
+function ajax_json_poll_fill(url, refresh_ms) {
+    refresh_ms = refresh_ms || 1000
     function callback(json) {
         page_fill_json_html(json);
         return true;
