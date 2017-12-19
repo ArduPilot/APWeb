@@ -1,2 +1,0 @@
-#define SONIX_BUILD_DATE "2017-06-09"
-#define SONIX_GIT_REVISION "aa12d1e0"
