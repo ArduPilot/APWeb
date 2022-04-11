@@ -51,7 +51,7 @@ static void unescape(char *p)
 
     while (*p) {
         if (*p == '+') *p = ' ';
-        if (*p == '%' && sscanf(p+1, "%02x", &v) == 1) {
+        if (*p == '%' && sscanf(p+1, "%02x", &v) == 1 && p[2] != 0) {
             *p = (char)v;
             memcpy(p+1, p+3, strlen(p+3)+1);
         }
