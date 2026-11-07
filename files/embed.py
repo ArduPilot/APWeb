@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 '''
 script to create embedded.c from a set of static files for web
@@ -27,13 +27,13 @@ struct embedded_file {
 
 def embed_file(f, idx):
     '''embed one file'''
-    contents = open(f).read()
+    contents = bytearray(open(f, "rb").read())
     out.write('''
 // %s
 static const char embedded_%u[] = {''' % (f, idx))
 
     for c in contents:
-        out.write('%u,' % ord(c))
+        out.write('%u,' % c)
     out.write('''
 0};
 ''')
