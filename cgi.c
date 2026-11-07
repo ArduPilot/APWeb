@@ -21,7 +21,7 @@
 #include "includes.h"
 #include <ctype.h>
 
-#ifdef _POSIX_VERSION
+#if defined(_POSIX_VERSION) && !defined(SYSTEM_FREERTOS)
 #include "posix/functions.h"
 #endif
 
