@@ -156,7 +156,10 @@ Choose a file to upload: <input id="fs:file" type="file" /><br />
 
     ajax_json_poll_fill(drone_url + "/ajax/version.json", 5000);
 
-    /* get autopilot version */
+    /* get autopilot version.  Old flight controller firmware only
+       supports REQUEST_AUTOPILOT_CAPABILITIES, ArduPilot 4.8 and later
+       only REQUEST_MESSAGE, so ask both ways */
+    mavlink_command_long_send(MAV_CMD_REQUEST_MESSAGE, 0, MAVLINK_MSG_ID_AUTOPILOT_VERSION);
     mavlink_command_long_send(MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES, 0, 1);
 
     function set_ardupilot_version(json) {
