@@ -235,7 +235,6 @@ static void mavlink_broadcast(int fd, mavlink_message_t *msg)
         sendto(fd, buf, len, 0, (struct sockaddr*)&addr, sizeof(addr));
     }
 }
-#endif
 
 /*
   send a mavlink msg over WiFi to a single target
@@ -251,6 +250,7 @@ static void mavlink_send_udp_out(mavlink_message_t *msg)
         sendto(udp_out_fd, buf, len, 0, (struct sockaddr*)&udp_out_addr, sizeof(udp_out_addr));
     }
 }
+#endif
 
 /*
   process input on a connection
