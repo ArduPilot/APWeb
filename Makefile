@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -g -Werror -std=gnu99
+CFLAGS=-Wall -g -Werror -std=gnu99 -I.
 
 SRC = $(wildcard *.c) $(wildcard lib/*.c) $(wildcard linux/*.c) $(wildcard posix/*.c)
 OBJ = $(SRC:%.c=%.o)
