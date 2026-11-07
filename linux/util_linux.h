@@ -28,5 +28,5 @@ void *print_printf(void *ctx, const char *fmt, ...);
 
 
 
-unsigned mavlink_fc_pkt_count();
+unsigned mavlink_fc_pkt_count(void);
 unsigned xPortGetFreeHeapSize();
