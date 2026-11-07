@@ -519,12 +519,12 @@ BAD_ACCEPT:
     return;
 }
 
-int uart2_get_baudrate()
+unsigned int uart2_get_baudrate(void)
 {
     return baudrate;
 }
 
-unsigned mavlink_fc_pkt_count()
+unsigned mavlink_fc_pkt_count(void)
 {
     return stats.packet_count_from_fc;
 }

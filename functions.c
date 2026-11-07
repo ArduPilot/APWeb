@@ -37,7 +37,7 @@ static void uptime(struct template_state *tmpl, const char *name, const char *va
 /*
   get FC mavlink packet count
  */
-unsigned mavlink_fc_pkt_count();
+unsigned mavlink_fc_pkt_count(void);
 static void fc_mavlink_count(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
 {
     sock_printf(tmpl->sock, "%u", mavlink_fc_pkt_count());
@@ -46,7 +46,7 @@ static void fc_mavlink_count(struct template_state *tmpl, const char *name, cons
 /*
   get FC mavlink baudrate
  */
-int uart2_get_baudrate();
+unsigned int uart2_get_baudrate(void);
 
 static void fc_mavlink_baudrate(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
 {
