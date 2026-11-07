@@ -28,14 +28,21 @@ void comm_send_ch(mavlink_channel_t chan, uint8_t ch);
 
 /*
   the generated MAVLink code does its own alignment, so taking the
-  address of packed members in its encode functions is fine
+  address of packed members in its encode functions is fine.  Only
+  compilers which have the warning get the pragmas; GCC before 4.6
+  (e.g. the Sonix toolchain's 4.5.2) doesn't understand push/pop.
 */
-#pragma GCC diagnostic push
 #if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 9)
+#define MAVLINK_IGNORE_PACKED_MEMBER_WARNING
+#endif
+#ifdef MAVLINK_IGNORE_PACKED_MEMBER_WARNING
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 #endif
 #include "generated/mavlink/ardupilotmega/mavlink.h"
+#ifdef MAVLINK_IGNORE_PACKED_MEMBER_WARNING
 #pragma GCC diagnostic pop
+#endif
 
 // alias for link to flight controller
 #define MAVLINK_COMM_FC MAVLINK_COMM_0
