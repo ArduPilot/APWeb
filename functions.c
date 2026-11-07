@@ -9,7 +9,7 @@
 #include "mavlink_core.h"
 #include "cgi.h"
 
-#ifdef _POSIX_VERSION
+#if defined(_POSIX_VERSION) && !defined(SYSTEM_FREERTOS)
 #include "posix/functions.h"
 #endif
 
@@ -1184,7 +1184,7 @@ void functions_init(struct template_state *tmpl)
     tmpl->put(tmpl, "get_isp_offset", "", get_isp_offset);
     tmpl->put(tmpl, "set_isp_offset", "", set_isp_offset);
 #endif // SYSTEM_FREERTOS
-#ifdef _POSIX_VERSION
+#if defined(_POSIX_VERSION) && !defined(SYSTEM_FREERTOS)
     posix_functions_init(tmpl);
 #endif
     tmpl->put(tmpl, "uptime", "", uptime);
