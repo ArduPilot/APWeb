@@ -409,5 +409,6 @@ function set_sonix_date()
     command_send(cmd);
 }
 
-// set date every 20s
-setInterval(set_sonix_date(), 20000);
+// set date now and every 20s
+set_sonix_date();
+setInterval(set_sonix_date, 20000);
