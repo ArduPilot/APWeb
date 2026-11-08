@@ -72,6 +72,7 @@ enum CGI_MIME_TYPE {MIME_TYPE_IMAGE_GIF,
                     MIME_TYPE_JSON,
                     MIME_TYPE_CSS,
                     MIME_TYPE_MJPG,
+                    MIME_TYPE_XML,
                     MIME_TYPE_UNKNOWN};
 
 /* prototypes */
