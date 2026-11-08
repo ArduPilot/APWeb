@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  MAVLink camera definition for the SkyViper camera, served at
+  http://192.168.99.1/data/camera.xml and named in CAMERA_INFORMATION.
+
+  Ground stations cache this file by vendor, model and the
+  cam_definition_version in CAMERA_INFORMATION, so bump that version
+  in the Sonix firmware whenever this file changes.
+
+  Defaults are the drone's factory settings, and the ranges are what
+  was measured on the camera; the firmware enforces the same ranges.
+-->
+<mavlinkcamera>
+  <definition version="3">
+    <model>SkyViper</model>
+    <vendor>SkyRocket</vendor>
+  </definition>
+  <parameters>
+    <parameter name="CAM_WDR" type="bool" default="1">
+      <description>Wide dynamic range</description>
+    </parameter>
+    <parameter name="CAM_BRIGHTNESS" type="int32" default="64" min="0" max="127" step="1">
+      <description>Brightness</description>
+    </parameter>
+    <parameter name="CAM_CONTRAST" type="int32" default="32" min="0" max="64" step="1">
+      <description>Contrast</description>
+    </parameter>
+    <parameter name="CAM_SATURATION" type="int32" default="64" min="0" max="127" step="1">
+      <description>Saturation</description>
+    </parameter>
+  </parameters>
+</mavlinkcamera>
