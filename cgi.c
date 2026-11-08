@@ -440,6 +440,7 @@ static const struct mime_type {
     {".js",   "application/javascript", MIME_TYPE_JAVASCRIPT},
     {".json", "application/json", MIME_TYPE_JSON},
     {".css",  "text/css", MIME_TYPE_CSS},
+    {".xml",  "application/xml", MIME_TYPE_XML},
     {".mjpg",  "multipart/x-mixed-replace; boundary=mjpgboundary", MIME_TYPE_MJPG},
     {NULL,     "data",      MIME_TYPE_UNKNOWN},
 };
