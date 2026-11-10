@@ -777,14 +777,20 @@ static void disk_info(struct template_state *tmpl, const char *name, const char 
 static void set_time_utc(struct template_state *tmpl, const char *name, const char *value, int argc, char **argv)
 {
     if (argc > 0) {
+        /*
+          give the time to the ublox code rather than setting the
+          clock here: it sets the clock from its best time source,
+          so a browser can't override a better one (such as the
+          flight controller), and it doesn't move the clock while a
+          video is being recorded
+         */
         uint32_t utc_seconds = simple_strtoul(argv[0], NULL, 10);
-        set_date_utc(utc_seconds);
+        ublox_set_time(utc_seconds);
     }
     if (argc > 1) {
         uint32_t tz_seconds = simple_strtoul(argv[1], NULL, 10);
         set_tz_offset(tz_seconds);
     }
-    ublox_set_time(get_sys_seconds_utc());
 }
 #endif // SYSTEM_FREERTOS
 
