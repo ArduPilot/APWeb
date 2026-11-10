@@ -416,3 +416,108 @@ function set_sonix_date()
 // set date now and every 20s
 set_sonix_date();
 setInterval(set_sonix_date, 20000);
+
+/*
+  show in the corner of every page whether the drone is answering,
+  and whether it's hearing from the flight controller.  The dot
+  pulses on each answer; once the drone or the flight controller has
+  been quiet for a while it says how long ago it was last seen.
+
+  The drone keeps the last HEARTBEAT it received on its flight
+  controller link, so the HEARTBEAT's _age is the time since it last
+  heard from that link.  On the SkyViper only the flight controller
+  sends on it (it doesn't route a GCS's HEARTBEATs back to us); with
+  the Linux build fed by a router that forwards other components'
+  HEARTBEATs this could stay fresh after the flight controller stops.
+*/
+var link_poll_ms = 1000;
+var link_stale_ms = 3000;
+var link_drone_seen_ms = 0;     // our clock when the drone last answered
+var link_fc_age_ms = null;      // HEARTBEAT age when it answered; null if none yet
+var link_indicator = null;
+
+function link_indicator_create() {
+    var div = document.createElement("div");
+    div.style.cssText = "position:fixed; top:6px; right:8px; z-index:1000; padding:2px 8px;" +
+        "border-radius:10px; background:rgba(255,255,255,0.85); font:12px sans-serif;" +
+        "color:#333; display:flex; align-items:center; gap:6px; pointer-events:none";
+    var dot = document.createElement("span");
+    dot.style.cssText = "display:inline-block; width:10px; height:10px; border-radius:50%; background:#999";
+    var text = document.createElement("span");
+    div.appendChild(dot);
+    div.appendChild(text);
+    document.body.appendChild(div);
+    link_indicator = { div: div, dot: dot, text: text };
+    link_indicator_update();
+}
+
+function link_seconds(ms) {
+    return Math.floor(ms / 1000) + " s";
+}
+
+function link_indicator_update() {
+    if (link_indicator == null) {
+        return;
+    }
+    var now = Date.now();
+    var colour, text;
+    if (link_drone_seen_ms == 0) {
+        colour = "#999";
+        text = "Drone not seen";
+    } else if (now - link_drone_seen_ms > link_stale_ms) {
+        colour = "#c33";
+        text = "Drone last seen " + link_seconds(now - link_drone_seen_ms) + " ago";
+    } else if (link_fc_age_ms == null) {
+        colour = "#e90";
+        text = "Flight controller not seen";
+    } else if (link_fc_age_ms > link_stale_ms) {
+        colour = "#e90";
+        text = "Flight controller last seen " + link_seconds(link_fc_age_ms) + " ago";
+    } else {
+        colour = "#2a2";
+        text = "";
+    }
+    link_indicator.dot.style.background = colour;
+    link_indicator.text.textContent = text;
+    link_indicator.text.style.display = text ? "" : "none";
+}
+
+function link_poll() {
+    var xhr = createCORSRequest("POST", drone_url + "/ajax/command.json");
+    var form = new FormData();
+    form.append("command1", "mavlink_message(HEARTBEAT)");
+    var done = false;
+    function again() {
+        if (!done) {
+            done = true;
+            setTimeout(link_poll, link_poll_ms);
+        }
+    }
+    xhr.onload = function() {
+        again();
+        var json;
+        try {
+            json = JSON.parse(xhr.responseText.replace(/(\r\n|\n|\r)/gm, " "));
+        } catch(e) {
+            return;
+        }
+        link_drone_seen_ms = Date.now();
+        link_fc_age_ms = ("HEARTBEAT" in json) ? json.HEARTBEAT._age : null;
+        link_indicator_update();
+        if (link_indicator && link_indicator.dot.animate) {
+            link_indicator.dot.animate([{ transform: "scale(1.6)" }, { transform: "scale(1)" }], 300);
+        }
+    };
+    xhr.onerror = again;
+    xhr.timeout = 2000;
+    xhr.ontimeout = again;
+    xhr.send(form);
+}
+
+if (document.readyState == "loading") {
+    document.addEventListener("DOMContentLoaded", link_indicator_create);
+} else {
+    link_indicator_create();
+}
+setInterval(link_indicator_update, 1000);
+link_poll();
