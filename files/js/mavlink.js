@@ -408,7 +408,9 @@ function set_sonix_date()
     var d = new Date();
     var dsec = get_utc_sec();
     var tz_offset = -d.getTimezoneOffset() * 60;
-    d = (dsec+0.5).toFixed(0);
+    // toFixed() rounds to the nearest second already: adding 0.5 too
+    // made the time we give the board up to a second fast
+    d = dsec.toFixed(0);
     var cmd = "set_time_utc(" + d + "," + tz_offset + ")";
     command_send(cmd);
 }
