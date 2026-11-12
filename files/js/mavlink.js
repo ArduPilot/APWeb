@@ -480,6 +480,46 @@ function link_indicator_update() {
     link_indicator.dot.style.background = colour;
     link_indicator.text.textContent = text;
     link_indicator.text.style.display = text ? "" : "none";
+    // the tab has no room to explain grey, and a drone not seen
+    // isn't talking to us, so the tab shows that as red
+    link_favicon_set(colour == "#999" ? "#c33" : colour);
+}
+
+/*
+  show the same dot as the browser tab's icon, so a tab in the
+  background shows whether the drone is answering
+*/
+var link_favicon = null;
+var link_favicon_colour = null;
+
+function link_favicon_set(colour) {
+    if (colour == link_favicon_colour) {
+        return;
+    }
+    var canvas = document.createElement("canvas");
+    if (!canvas.getContext) {
+        return;
+    }
+    canvas.width = 32;
+    canvas.height = 32;
+    var ctx = canvas.getContext("2d");
+    if (!ctx) { return; }
+    ctx.beginPath();
+    ctx.arc(16, 16, 13, 0, 2 * Math.PI);
+    ctx.fillStyle = colour;
+    ctx.fill();
+    // a light rim keeps the dot visible on a dark tab bar
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#fff";
+    ctx.stroke();
+    if (link_favicon == null) {
+        link_favicon = document.createElement("link");
+        link_favicon.rel = "icon";
+        link_favicon.type = "image/png";
+        document.head.appendChild(link_favicon);
+    }
+    link_favicon.href = canvas.toDataURL("image/png");
+    link_favicon_colour = colour;
 }
 
 function link_poll() {
@@ -508,9 +548,16 @@ function link_poll() {
             link_indicator.dot.animate([{ transform: "scale(1.6)" }, { transform: "scale(1)" }], 300);
         }
     };
-    xhr.onerror = again;
+    // update the indicator here too: a hidden tab's setInterval is
+    // throttled, while these come from the request, so a tab in the
+    // background turns red within seconds of the drone going quiet
+    function failed() {
+        again();
+        link_indicator_update();
+    }
+    xhr.onerror = failed;
     xhr.timeout = 2000;
-    xhr.ontimeout = again;
+    xhr.ontimeout = failed;
     xhr.send(form);
 }
 
