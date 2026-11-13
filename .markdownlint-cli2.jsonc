@@ -1,0 +1,12 @@
+{
+  // Configuration for markdownlint-cli2, as in ArduPilot
+  // Ignore vendored/external directories
+  "ignores": [
+    "modules/**"
+  ],
+  "config": {
+    // Disable rules that would otherwise flag existing text
+    "MD013": false,  // Line length
+    "MD029": false   // Ordered list item prefix
+  }
+}
