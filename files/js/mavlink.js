@@ -435,6 +435,9 @@ var link_stale_ms = 3000;
 var link_drone_seen_ms = 0;     // our clock when the drone last answered
 var link_fc_age_ms = null;      // HEARTBEAT age when it answered; null if none yet
 var link_indicator = null;
+var link_poll_started_ms = 0;   // when link_poll last sent a request
+var link_poll_gen = 0;          // bumped to retire a poll loop
+var link_poll_timer = null;     // the loop's wait before its next request
 
 function link_indicator_create() {
     var div = document.createElement("div");
@@ -523,14 +526,18 @@ function link_favicon_set(colour) {
 }
 
 function link_poll() {
+    link_poll_timer = null;
+    link_poll_started_ms = Date.now();
+    var gen = link_poll_gen;
     var xhr = createCORSRequest("POST", drone_url + "/ajax/command.json");
     var form = new FormData();
     form.append("command1", "mavlink_message(HEARTBEAT)");
     var done = false;
     function again() {
-        if (!done) {
+        // a loop the watchdog has replaced stops here
+        if (!done && gen == link_poll_gen) {
             done = true;
-            setTimeout(link_poll, link_poll_ms);
+            link_poll_timer = setTimeout(link_poll, link_poll_ms);
         }
     }
     xhr.onload = function() {
@@ -558,7 +565,30 @@ function link_poll() {
     xhr.onerror = failed;
     xhr.timeout = 2000;
     xhr.ontimeout = failed;
-    xhr.send(form);
+    // an aborted request (e.g. the network changing while the computer
+    // sleeps) fires none of the above, and would end the loop
+    xhr.onabort = failed;
+    try {
+        xhr.send(form);
+    } catch(e) {
+        failed();
+    }
+}
+
+/*
+  restart the poll loop if it has stopped anyway: a page left open for
+  hours away from the drone was found stuck showing it as not seen.
+  A throttled background tab can also trip this, which is harmless:
+  the old loop is retired, whether it is waiting for a reply or for
+  its next request, so there is still only one
+*/
+function link_poll_watchdog() {
+    // a request is sent at most link_poll_ms + its 2s timeout apart
+    if (Date.now() - link_poll_started_ms > 5000) {
+        link_poll_gen++;
+        clearTimeout(link_poll_timer);
+        link_poll();
+    }
 }
 
 if (document.readyState == "loading") {
@@ -566,5 +596,8 @@ if (document.readyState == "loading") {
 } else {
     link_indicator_create();
 }
-setInterval(link_indicator_update, 1000);
+setInterval(function() {
+    link_indicator_update();
+    link_poll_watchdog();
+}, 1000);
 link_poll();
