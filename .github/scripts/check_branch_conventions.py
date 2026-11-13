@@ -76,8 +76,10 @@ class CheckBranchConventions:
         self.head = head
 
     def run_git(self, args) -> str:
-        return subprocess.run(["git"] + list(args), check=True, capture_output=True,
-                              encoding="utf-8", errors="replace").stdout
+        # core.quotePath=false: paths with non-ASCII characters come back
+        # as they are rather than C-quoted
+        return subprocess.run(["git", "-c", "core.quotePath=false"] + list(args), check=True,
+                              capture_output=True, encoding="utf-8", errors="replace").stdout
 
     def get_changed_paths_for_commit(self, commit: str) -> list:
         '''return the list of paths changed in a single commit'''
@@ -212,12 +214,25 @@ class CheckBranchConventions:
         commits_raw = self.run_git(['rev-list', '--reverse', f'{self.base_branch}..{self.head}']).strip()
         return [c.strip() for c in commits_raw.splitlines() if c.strip()]
 
+    def get_submodule_changes_for_commit(self, commit: str) -> list:
+        '''paths of the submodules (gitlinks) a commit adds, updates or
+           removes, from the commit itself rather than .gitmodules at the
+           head, which a later commit may have changed'''
+        raw = self.run_git(['diff-tree', '--no-commit-id', '-r', '--raw', commit])
+        paths = []
+        for line in raw.splitlines():
+            meta, _, path = line.partition("\t")
+            modes = meta.lstrip(":").split()[:2]
+            if "160000" in modes:
+                paths.append(path)
+        return paths
+
     def check_submodule_isolation(self) -> bool:
         '''check that each submodule update is isolated in its own commit'''
-        submodule_paths = self.get_submodule_paths()
         ok = True
         for commit in self.commits_on_branch():
             changed = self.get_changed_paths_for_commit(commit)
+            submodule_paths = self.get_submodule_changes_for_commit(commit)
             submodule_changes = [p for p in changed if p in submodule_paths]
             if not submodule_changes:
                 continue
@@ -347,8 +362,9 @@ class CheckBranchConventions:
         ok = True
         for pattern, what in ((r"`[^`]*<[^>]*>`__\?", "RST-style hyperlinks"),
                               (r":[a-z]\+:`", "RST cross-references")):
-            result = subprocess.run(["git", "grep", "-n", pattern, self.head, "--"] + files,
-                                    capture_output=True, text=True)
+            result = subprocess.run(["git", "-c", "core.quotePath=false", "grep", "-n", pattern,
+                                     self.head, "--"] + files,
+                                    capture_output=True, encoding="utf-8", errors="replace")
             if result.returncode > 1:
                 print(f"{SKIP} git grep failed: {result.stderr.strip()}")
                 return True
@@ -374,10 +390,19 @@ class CheckBranchConventions:
         for path in files:
             text = self.run_git(["show", f"{self.head}:{path}"])
             prev_line = ""
-            in_fence = False
+            fence = None        # the fence that opened the current code block
             for lineno, line in enumerate(text.splitlines(), 1):
-                if fence_re.match(line):
-                    in_fence = not in_fence
+                m = fence_re.match(line)
+                if fence is None:
+                    if m:
+                        fence = m.group(1)
+                elif (m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence)
+                        and line.strip() == m.group(1)):
+                    # only a bare fence of the same kind, at least as long, closes it
+                    fence = None
+                    prev_line = line
+                    continue
+                in_fence = fence is not None
                 if (not in_fence
                         and underline_re.match(line)
                         and len(line.strip()) == len(prev_line.strip())):
