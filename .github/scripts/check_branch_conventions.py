@@ -81,10 +81,16 @@ class CheckBranchConventions:
         return subprocess.run(["git", "-c", "core.quotePath=false"] + list(args), check=True,
                               capture_output=True, encoding="utf-8", errors="replace").stdout
 
+    def run_git_z(self, args) -> list:
+        '''run git with -z output and split it on NULs: paths come back
+           exactly, whatever characters they contain'''
+        args = list(args)
+        # -z goes straight after the subcommand: after a "--" it would be a path
+        return [f for f in self.run_git(args[:1] + ["-z"] + args[1:]).split("\0") if f]
+
     def get_changed_paths_for_commit(self, commit: str) -> list:
         '''return the list of paths changed in a single commit'''
-        output = self.run_git(['diff-tree', '--no-commit-id', '-r', '--name-only', commit])
-        return [line.strip() for line in output.splitlines() if line.strip()]
+        return self.run_git_z(['diff-tree', '--no-commit-id', '-r', '--name-only', commit])
 
     def subsystem_for_commit(self, sha: str) -> str | None:
         '''suggest a prefix in this repository's style: the file name
@@ -185,11 +191,11 @@ class CheckBranchConventions:
         print(f"{PASS} No unacceptable author emails.")
         return True
 
-    def _gitmodules(self, key: str) -> dict:
+    def _gitmodules(self, key: str, rev: str | None = None) -> dict:
         '''map submodule name to its .gitmodules value for key (path, url),
-           as of the commit being checked'''
+           as of rev (default: the commit being checked)'''
         try:
-            output = self.run_git(['config', '--blob', f'{self.head}:.gitmodules',
+            output = self.run_git(['config', '--blob', f'{rev or self.head}:.gitmodules',
                                    '--get-regexp', rf'\.{key}$'])
         except subprocess.CalledProcessError:
             return {}
@@ -204,10 +210,10 @@ class CheckBranchConventions:
     def get_submodule_paths(self) -> set:
         return set(self._gitmodules('path').values())
 
-    def get_submodule_urls(self) -> dict:
-        '''mapping of submodule path to canonical url'''
-        paths = self._gitmodules('path')
-        urls = self._gitmodules('url')
+    def get_submodule_urls(self, rev: str | None = None) -> dict:
+        '''mapping of submodule path to canonical url, as of rev'''
+        paths = self._gitmodules('path', rev)
+        urls = self._gitmodules('url', rev)
         return {paths[name]: url for name, url in urls.items() if name in paths}
 
     def commits_on_branch(self) -> list:
@@ -218,10 +224,10 @@ class CheckBranchConventions:
         '''paths of the submodules (gitlinks) a commit adds, updates or
            removes, from the commit itself rather than .gitmodules at the
            head, which a later commit may have changed'''
-        raw = self.run_git(['diff-tree', '--no-commit-id', '-r', '--raw', commit])
+        # with -z each entry is ":modes shas status" then the path
+        fields = self.run_git_z(['diff-tree', '--no-commit-id', '-r', '--raw', commit])
         paths = []
-        for line in raw.splitlines():
-            meta, _, path = line.partition("\t")
+        for meta, path in zip(fields[0::2], fields[1::2]):
             modes = meta.lstrip(":").split()[:2]
             if "160000" in modes:
                 paths.append(path)
@@ -236,7 +242,9 @@ class CheckBranchConventions:
             submodule_changes = [p for p in changed if p in submodule_paths]
             if not submodule_changes:
                 continue
-            other_changes = [p for p in changed if p not in submodule_paths]
+            # adding, moving or removing a submodule edits .gitmodules too
+            other_changes = [p for p in changed
+                             if p not in submodule_paths and p != ".gitmodules"]
             commit_ok = True
             if len(submodule_changes) > 1:
                 print(f"{FAIL} {commit[:12]} updates multiple submodules in one commit: "
@@ -310,13 +318,14 @@ class CheckBranchConventions:
             print(f"{SKIP} Submodule reference check only applies to master-targeting PRs.")
             return True
 
-        submodule_paths = self.get_submodule_paths()
-        submodule_urls = self.get_submodule_urls()
         ok = True
         any_checked = False
         for commit in self.commits_on_branch():
-            changed = self.get_changed_paths_for_commit(commit)
-            for submodule_path in [p for p in changed if p in submodule_paths]:
+            # each commit's own gitlinks, and its own .gitmodules for
+            # their URLs, so a submodule a later commit moves or
+            # removes is still checked
+            submodule_urls = self.get_submodule_urls(commit)
+            for submodule_path in self.get_submodule_changes_for_commit(commit):
                 # format: "160000 commit <sha> <path>"
                 parts = self.run_git(['ls-tree', commit, submodule_path]).split()
                 if len(parts) < 3 or parts[1] != 'commit':
@@ -346,9 +355,8 @@ class CheckBranchConventions:
         return ok
 
     def changed_markdown(self) -> list:
-        changed = self.run_git(["diff", "--name-only", "--diff-filter=AMR",
-                                f"{self.base_branch}...{self.head}", "--", "*.md"]).strip()
-        return changed.splitlines() if changed else []
+        return self.run_git_z(["diff", "--name-only", "--diff-filter=AMR",
+                               f"{self.base_branch}...{self.head}", "--", "*.md"])
 
     def check_markdown_rst_hyperlinks(self) -> bool:
         '''flag RST-style markup in changed markdown files:
@@ -385,7 +393,8 @@ class CheckBranchConventions:
             print(f"{PASS} No markdown files changed (underline heading check).")
             return True
         underline_re = re.compile(r'^([=\-~^#+*])\1{2,}$')
-        fence_re = re.compile(r'^(`{3,}|~{3,})')
+        # CommonMark allows a fence up to three spaces in
+        fence_re = re.compile(r'^ {0,3}(`{3,}|~{3,})')
         errors = []
         for path in files:
             text = self.run_git(["show", f"{self.head}:{path}"])
@@ -432,15 +441,21 @@ class CheckBranchConventions:
            so pre-existing violations do not block unrelated edits.
         '''
         merge_base = self.run_git(["merge-base", self.base_branch, self.head]).strip()
-        name_status = self.run_git(["diff", "--name-status", "-M", f"{merge_base}..{self.head}"]).strip()
+        # with -z: status, then one path, or two for a rename or copy
+        fields = self.run_git_z(["diff", "--name-status", "-M", f"{merge_base}..{self.head}"])
+        entries = []
+        i = 0
+        while i < len(fields):
+            status = fields[i]
+            npaths = 2 if status[:1] in ("R", "C") else 1
+            entries.append((status, fields[i + 1:i + 1 + npaths]))
+            i += 1 + npaths
         ok = True
-        for line in name_status.splitlines():
-            parts = line.split("\t")
-            status = parts[0]
-            if status.startswith("R") and len(parts) == 3:
-                old_path, new_path = parts[1], parts[2]
-            elif status in ("A", "M") and len(parts) == 2:
-                new_path = parts[1]
+        for status, paths in entries:
+            if status.startswith("R") and len(paths) == 2:
+                old_path, new_path = paths
+            elif status in ("A", "M") and len(paths) == 1:
+                new_path = paths[0]
                 old_path = None if status == "A" else new_path
             else:
                 # deletions, mode changes etc.
