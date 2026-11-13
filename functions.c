@@ -489,19 +489,27 @@ static void handle_sonix_upgrade(struct template_state *tmpl, const char *filena
     if (check_fw_md5((const unsigned char *)filedata, size)) {
         set_upload_message("Good MD5 on image");
         mdelay(1000);
-        set_upload_progress(100);
+        // not 100 yet: the page stops polling at 100, and should still
+        // see what happens with the microSD copy
+        set_upload_progress(90);
         // write to FIRMWARE_660R.bin for recovery.  The image is
         // already in memory, so if the microSD card can't take it we
         // still upgrade: a broken card mustn't stop the firmware that
-        // might fix it being loaded.  A partly-written copy is removed,
-        // as the rescue image flashes FIRMWARE_660R.bin unchecked
+        // might fix it being loaded.  A partly-written copy must go
+        // first, as the rescue image flashes FIRMWARE_660R.bin unchecked
         if (dev_write_file(recovery_file, (const uint8_t *)filedata, size) != 0) {
             f_unlink(recovery_file);
+            if (file_exists(recovery_file)) {
+                set_upload_message("Failed to write image to microSD, and couldn't remove the partial copy - please check SD card");
+                set_upload_progress(100);
+                return;
+            }
             set_upload_message("Failed to save a copy to microSD - upgrading anyway");
             mdelay(3000);
         }
         // give time for UI to update
         set_upload_message("starting upgrade");
+        set_upload_progress(100);
         mdelay(3000);
         fw_upgrade(__DECONST(char*,filedata), size);
         set_upload_message("success - rebooting");
