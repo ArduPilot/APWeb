@@ -28,6 +28,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 
@@ -70,11 +71,13 @@ class CheckBranchConventions:
 
     def __init__(self, base_branch: str | None = None, head: str = "HEAD") -> None:
         self.base_branch = base_branch
+        # the branch it names, kept when base_branch becomes a merge-base SHA
+        self.base_branch_ref = base_branch or self.DEFAULT_UPSTREAM
         self.head = head
 
     def run_git(self, args) -> str:
-        return subprocess.run(["git"] + list(args), check=True,
-                              capture_output=True, text=True).stdout
+        return subprocess.run(["git"] + list(args), check=True, capture_output=True,
+                              encoding="utf-8", errors="replace").stdout
 
     def get_changed_paths_for_commit(self, commit: str) -> list:
         '''return the list of paths changed in a single commit'''
@@ -160,8 +163,10 @@ class CheckBranchConventions:
         for line in commits.splitlines():
             if not line.strip():
                 continue
-            if len(line) > MAX_SUBJECT_LEN:
-                print(f"{FAIL} Subject too long ({len(line)} chars, limit {MAX_SUBJECT_LEN}): {line}")
+            # measure the subject, not the hash --oneline puts in front of it
+            subject = line.partition(" ")[2] or line
+            if len(subject) > MAX_SUBJECT_LEN:
+                print(f"{FAIL} Subject too long ({len(subject)} chars, limit {MAX_SUBJECT_LEN}): {line}")
                 ok = False
         if ok:
             print(f"{PASS} All commit subject lines within {MAX_SUBJECT_LEN} characters.")
@@ -235,13 +240,11 @@ class CheckBranchConventions:
         return ok
 
     def _base_branch_name(self) -> str | None:
-        '''extract bare branch name from self.base_branch; returns None for bare SHAs'''
-        if not self.base_branch:
-            return None
-        if re.match(r'^[0-9a-f]{40}$', self.base_branch):
+        '''extract bare branch name from the base branch; returns None for bare SHAs'''
+        if re.match(r'^[0-9a-f]{40}$', self.base_branch_ref):
             return None
         # "upstream/master" -> "master"
-        return self.base_branch.split('/')[-1]
+        return self.base_branch_ref.split('/')[-1]
 
     def _github_repo_from_url(self, url: str) -> str | None:
         '''extract "owner/repo" from a GitHub HTTPS URL, or None if not a GitHub URL'''
@@ -328,7 +331,7 @@ class CheckBranchConventions:
         return ok
 
     def changed_markdown(self) -> list:
-        changed = self.run_git(["diff", "--name-only", "--diff-filter=AM",
+        changed = self.run_git(["diff", "--name-only", "--diff-filter=AMR",
                                 f"{self.base_branch}...{self.head}", "--", "*.md"]).strip()
         return changed.splitlines() if changed else []
 
@@ -442,11 +445,22 @@ class CheckBranchConventions:
         if not files:
             print(f"{PASS} No markdown files changed.")
             return True
-        try:
-            result = subprocess.run(["markdownlint-cli2"] + files)
-        except FileNotFoundError:
-            print(f"{SKIP} markdownlint-cli2 not installed.")
-            return True
+        # lint the files as they are in self.head, with its config, which
+        # needn't be what is checked out
+        with tempfile.TemporaryDirectory() as tmp:
+            for path in files + [".markdownlint-cli2.jsonc"]:
+                blob = subprocess.run(["git", "cat-file", "blob", f"{self.head}:{path}"],
+                                      capture_output=True)
+                if blob.returncode != 0:
+                    continue
+                dest = pathlib.Path(tmp, path)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(blob.stdout)
+            try:
+                result = subprocess.run(["markdownlint-cli2"] + files, cwd=tmp)
+            except FileNotFoundError:
+                print(f"{SKIP} markdownlint-cli2 not installed.")
+                return True
         if result.returncode != 0:
             print(f"{FAIL} Markdown linting errors found (see above).")
             return False

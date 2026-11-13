@@ -5,7 +5,7 @@
     "modules/**"
   ],
   "config": {
-    // Disable rules that would otherwise flag existing text
+    // Disable rules ArduPilot disables
     "MD013": false,  // Line length
     "MD029": false   // Ordered list item prefix
   }
