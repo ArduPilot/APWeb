@@ -53,6 +53,9 @@ SOURCE_EXTENSIONS = {
 }
 
 # Enable colour when attached to a terminal or running under GitHub Actions
+# paths may hold bytes that aren't UTF-8; print them escaped rather than fail
+sys.stdout.reconfigure(errors="backslashreplace")
+
 _colour = sys.stdout.isatty() or os.environ.get('GITHUB_ACTIONS') == 'true'
 _GREEN = '\033[32m' if _colour else ''
 _RED = '\033[31m' if _colour else ''
@@ -82,10 +85,15 @@ class CheckBranchConventions:
 
     def run_git_z(self, args) -> list:
         '''run git with -z output and split it on NULs: paths come back
-           exactly, whatever characters they contain'''
+           exactly, whatever characters they contain.  surrogateescape
+           keeps bytes that aren't UTF-8, so the path can be handed back
+           to git or the filesystem unchanged'''
         args = list(args)
         # -z goes straight after the subcommand: after a "--" it would be a path
-        return [f for f in self.run_git(args[:1] + ["-z"] + args[1:]).split("\0") if f]
+        out = subprocess.run(["git", "-c", "core.quotePath=false", args[0], "-z"] + args[1:],
+                             check=True, capture_output=True,
+                             encoding="utf-8", errors="surrogateescape").stdout
+        return [f for f in out.split("\0") if f]
 
     def get_changed_paths_for_commit(self, commit: str) -> list:
         '''return the list of paths changed in a single commit'''
@@ -173,13 +181,11 @@ class CheckBranchConventions:
         result = {}
         for line in output.splitlines():
             # submodule.modules/mavlink.path modules/mavlink
-            parts = line.split()
+            # the value (a path or URL) may contain spaces
+            parts = line.split(None, 1)
             if len(parts) == 2:
                 result[parts[0][len('submodule.'):-len('.' + key)]] = parts[1]
         return result
-
-    def get_submodule_paths(self) -> set:
-        return set(self._gitmodules('path').values())
 
     def get_submodule_urls(self, rev: str | None = None) -> dict:
         '''mapping of submodule path to canonical url, as of rev'''
@@ -356,7 +362,9 @@ class CheckBranchConventions:
         for lineno, line in enumerate(text.splitlines(), 1):
             m = fence_re.match(line)
             if fence is None:
-                if m:
+                # a backtick fence's info string can't contain a backtick:
+                # a line like ```x``` is inline code, not a fence
+                if m and not (m.group(1)[0] == "`" and "`" in line[m.end():]):
                     fence = m.group(1)
                 yield lineno, line, fence is not None
             elif (m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence)
@@ -487,19 +495,24 @@ class CheckBranchConventions:
             return True
         # lint the files as they are in self.head, with its config, which
         # needn't be what is checked out
+        # markdownlint-cli2 runs under Node, which can't open a file whose
+        # name isn't UTF-8, so such a file is linted under a UTF-8 name
+        def lint_name(path):
+            return path.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
         with tempfile.TemporaryDirectory() as tmp:
             for path in files + [".markdownlint-cli2.jsonc"]:
                 blob = subprocess.run(["git", "cat-file", "blob", f"{self.head}:{path}"],
                                       capture_output=True)
                 if blob.returncode != 0:
                     continue
-                dest = pathlib.Path(tmp, path)
+                dest = pathlib.Path(tmp, lint_name(path))
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_bytes(blob.stdout)
             try:
                 # a leading ':' makes each a literal path, not a glob
                 # (so names starting '#' or '!' are still linted)
-                result = subprocess.run(["markdownlint-cli2"] + [":" + f for f in files], cwd=tmp)
+                result = subprocess.run(["markdownlint-cli2"] + [":" + lint_name(f) for f in files],
+                                        cwd=tmp)
             except FileNotFoundError:
                 print(f"{SKIP} markdownlint-cli2 not installed.")
                 return True
