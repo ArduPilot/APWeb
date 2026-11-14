@@ -220,28 +220,45 @@ class CheckBranchConventions:
         commits_raw = self.run_git(['rev-list', '--reverse', f'{self.base_branch}..{self.head}']).strip()
         return [c.strip() for c in commits_raw.splitlines() if c.strip()]
 
-    def get_submodule_changes_for_commit(self, commit: str) -> list:
-        '''paths of the submodules (gitlinks) a commit adds, updates or
-           removes, from the commit itself rather than .gitmodules at the
-           head, which a later commit may have changed'''
-        # with -z each entry is ":modes shas status" then the path
+    def get_gitlink_changes_for_commit(self, commit: str) -> list:
+        '''(path, old sha, new sha) of each submodule (gitlink) a commit
+           adds, updates or removes, from the commit itself rather than
+           .gitmodules at the head, which a later commit may have changed.
+           A sha is None on the side the gitlink doesn't exist.'''
+        # with -z each entry is ":oldmode newmode oldsha newsha status" then the path
         fields = self.run_git_z(['diff-tree', '--no-commit-id', '-r', '--raw', commit])
-        paths = []
+        changes = []
         for meta, path in zip(fields[0::2], fields[1::2]):
-            modes = meta.lstrip(":").split()[:2]
-            if "160000" in modes:
-                paths.append(path)
-        return paths
+            old_mode, new_mode, old_sha, new_sha = meta.lstrip(":").split()[:4]
+            if "160000" in (old_mode, new_mode):
+                changes.append((path,
+                                old_sha if old_mode == "160000" else None,
+                                new_sha if new_mode == "160000" else None))
+        return changes
+
+    def get_submodule_changes_for_commit(self, commit: str) -> list:
+        '''paths of the submodules a commit adds, updates or removes'''
+        return [path for path, _, _ in self.get_gitlink_changes_for_commit(commit)]
 
     def check_submodule_isolation(self) -> bool:
         '''check that each submodule update is isolated in its own commit'''
         ok = True
         for commit in self.commits_on_branch():
             changed = self.get_changed_paths_for_commit(commit)
-            submodule_paths = self.get_submodule_changes_for_commit(commit)
-            submodule_changes = [p for p in changed if p in submodule_paths]
-            if not submodule_changes:
+            gitlinks = self.get_gitlink_changes_for_commit(commit)
+            submodule_paths = [path for path, _, _ in gitlinks]
+            if not submodule_paths:
                 continue
+            # a moved submodule is removed at one path and added at
+            # another at the same commit: count it once
+            removed = {old: path for path, old, new in gitlinks if new is None}
+            moves = []
+            for path, old, new in gitlinks:
+                if old is None and new in removed:
+                    moves.append((removed.pop(new), path))
+            moved = {p for move in moves for p in move}
+            submodule_changes = ([f"{a} -> {b}" for a, b in moves] +
+                                 [path for path in submodule_paths if path not in moved])
             # adding, moving or removing a submodule edits .gitmodules too
             other_changes = [p for p in changed
                              if p not in submodule_paths and p != ".gitmodules"]
@@ -358,8 +375,30 @@ class CheckBranchConventions:
         return self.run_git_z(["diff", "--name-only", "--diff-filter=AMR",
                                f"{self.base_branch}...{self.head}", "--", "*.md"])
 
+    @staticmethod
+    def _markdown_lines(text: str):
+        '''yield (line number, line, whether it is part of a fenced code
+           block) for each line of a markdown file'''
+        # CommonMark allows a fence up to three spaces in
+        fence_re = re.compile(r'^ {0,3}(`{3,}|~{3,})')
+        fence = None        # the fence that opened the current code block
+        for lineno, line in enumerate(text.splitlines(), 1):
+            m = fence_re.match(line)
+            if fence is None:
+                if m:
+                    fence = m.group(1)
+                yield lineno, line, fence is not None
+            elif (m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence)
+                    and line.strip() == m.group(1)):
+                # only a bare fence of the same kind, at least as long, closes it
+                fence = None
+                yield lineno, line, True
+            else:
+                yield lineno, line, True
+
     def check_markdown_rst_hyperlinks(self) -> bool:
-        '''flag RST-style markup in changed markdown files:
+        '''flag RST-style markup in changed markdown files, outside
+           fenced code (where a document may be showing it):
            - external hyperlinks: `text <url>`_ or `__
            - cross-references:    :ref:`...`, :doc:`...`, etc.
         '''
@@ -367,19 +406,23 @@ class CheckBranchConventions:
         if not files:
             print(f"{PASS} No markdown files changed (RST markup check).")
             return True
+        patterns = ((re.compile(r"`[^`]*<[^>]*>`__?"), "RST-style hyperlinks"),
+                    (re.compile(r":[a-z]+:`"), "RST cross-references"))
+        found = {what: [] for _, what in patterns}
+        for path in files:
+            text = self.run_git(["show", f"{self.head}:{path}"])
+            for lineno, line, in_code in self._markdown_lines(text):
+                if in_code:
+                    continue
+                for pattern, what in patterns:
+                    if pattern.search(line):
+                        found[what].append(f"{path}:{lineno}:{line}")
         ok = True
-        for pattern, what in ((r"`[^`]*<[^>]*>`__\?", "RST-style hyperlinks"),
-                              (r":[a-z]\+:`", "RST cross-references")):
-            result = subprocess.run(["git", "-c", "core.quotePath=false", "grep", "-n", pattern,
-                                     self.head, "--"] + files,
-                                    capture_output=True, encoding="utf-8", errors="replace")
-            if result.returncode > 1:
-                print(f"{SKIP} git grep failed: {result.stderr.strip()}")
-                return True
-            if result.stdout.strip():
+        for what, hits in found.items():
+            if hits:
                 print(f"{FAIL} {what} found in markdown file(s):")
-                for line in result.stdout.splitlines():
-                    print(f"         {line}")
+                for hit in hits:
+                    print(f"         {hit}")
                 print("       Use markdown link syntax [text](url) instead.")
                 ok = False
         if ok:
@@ -393,26 +436,12 @@ class CheckBranchConventions:
             print(f"{PASS} No markdown files changed (underline heading check).")
             return True
         underline_re = re.compile(r'^([=\-~^#+*])\1{2,}$')
-        # CommonMark allows a fence up to three spaces in
-        fence_re = re.compile(r'^ {0,3}(`{3,}|~{3,})')
         errors = []
         for path in files:
             text = self.run_git(["show", f"{self.head}:{path}"])
             prev_line = ""
-            fence = None        # the fence that opened the current code block
-            for lineno, line in enumerate(text.splitlines(), 1):
-                m = fence_re.match(line)
-                if fence is None:
-                    if m:
-                        fence = m.group(1)
-                elif (m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence)
-                        and line.strip() == m.group(1)):
-                    # only a bare fence of the same kind, at least as long, closes it
-                    fence = None
-                    prev_line = line
-                    continue
-                in_fence = fence is not None
-                if (not in_fence
+            for lineno, line, in_code in self._markdown_lines(text):
+                if (not in_code
                         and underline_re.match(line)
                         and len(line.strip()) == len(prev_line.strip())):
                     errors.append((path, lineno, line.strip()))
@@ -497,7 +526,9 @@ class CheckBranchConventions:
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_bytes(blob.stdout)
             try:
-                result = subprocess.run(["markdownlint-cli2"] + files, cwd=tmp)
+                # a leading ':' makes each a literal path, not a glob
+                # (so names starting '#' or '!' are still linted)
+                result = subprocess.run(["markdownlint-cli2"] + [":" + f for f in files], cwd=tmp)
             except FileNotFoundError:
                 print(f"{SKIP} markdownlint-cli2 not installed.")
                 return True
