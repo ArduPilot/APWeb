@@ -1,0 +1,14 @@
+{
+  // Configuration for markdownlint-cli2, as in ArduPilot
+  // Ignore vendored/external directories
+  "ignores": [
+    "modules/**"
+  ],
+  "config": {
+    // Disable rules ArduPilot disables
+    "MD013": false,  // Line length
+    "MD029": false,  // Ordered list item prefix
+    // headings are ATX style (# Heading), never setext (underlined)
+    "MD003": { "style": "atx" }
+  }
+}
