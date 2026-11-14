@@ -174,17 +174,17 @@ class CheckBranchConventions:
         '''map submodule name to its .gitmodules value for key (path, url),
            as of rev (default: the commit being checked)'''
         try:
-            output = self.run_git(['config', '--blob', f'{rev or self.head}:.gitmodules',
-                                   '--get-regexp', rf'\.{key}$'])
+            entries = self.run_git_z(['config', '--blob', f'{rev or self.head}:.gitmodules',
+                                      '--get-regexp', rf'\.{key}$'])
         except subprocess.CalledProcessError:
             return {}
         result = {}
-        for line in output.splitlines():
-            # submodule.modules/mavlink.path modules/mavlink
-            # the value (a path or URL) may contain spaces
-            parts = line.split(None, 1)
-            if len(parts) == 2:
-                result[parts[0][len('submodule.'):-len('.' + key)]] = parts[1]
+        for entry in entries:
+            # with -z: "submodule.<name>.<key>\n<value>"; the name (which
+            # git submodule add makes the path) and value may hold spaces
+            name_key, newline, value = entry.partition("\n")
+            if newline:
+                result[name_key[len('submodule.'):-len('.' + key)]] = value
         return result
 
     def get_submodule_urls(self, rev: str | None = None) -> dict:
@@ -414,7 +414,10 @@ class CheckBranchConventions:
         if not files:
             print(f"{PASS} No markdown files changed (underline heading check).")
             return True
-        underline_re = re.compile(r'^([=\-~^#+*])\1{2,}$')
+        # not '*': in markdown, *** under a line is a thematic break, not
+        # a heading.  Setext headings (=== and ---) are also caught by
+        # markdownlint's MD003, which this repository sets to ATX
+        underline_re = re.compile(r'^([=\-~^#+])\1{2,}$')
         errors = []
         for path in files:
             text = self.run_git(["show", f"{self.head}:{path}"])
@@ -496,9 +499,29 @@ class CheckBranchConventions:
         # lint the files as they are in self.head, with its config, which
         # needn't be what is checked out
         # markdownlint-cli2 runs under Node, which can't open a file whose
-        # name isn't UTF-8, so such a file is linted under a UTF-8 name
+        # name isn't UTF-8, so such a file is linted under a UTF-8 name,
+        # its bad bytes escaped and made unique among the names linted
+        def utf8_clean(path):
+            try:
+                path.encode("utf-8")
+                return True
+            except UnicodeEncodeError:
+                return False
+        lint_names = {path: path for path in files + [".markdownlint-cli2.jsonc"]
+                      if utf8_clean(path)}
+        for path in files:
+            if path in lint_names:
+                continue
+            escaped = path.encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace")
+            base, ext = os.path.splitext(escaped)
+            name, n = escaped, 1
+            while name in lint_names.values():
+                name = f"{base}~{n}{ext}"
+                n += 1
+            lint_names[path] = name
+            print(f"       ({name} isn't a UTF-8 name: shown with its other bytes escaped)")
         def lint_name(path):
-            return path.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
+            return lint_names[path]
         with tempfile.TemporaryDirectory() as tmp:
             for path in files + [".markdownlint-cli2.jsonc"]:
                 blob = subprocess.run(["git", "cat-file", "blob", f"{self.head}:{path}"],
