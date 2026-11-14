@@ -479,11 +479,61 @@ static void get_ssid(struct template_state *tmpl, const char *name, const char *
 }
 
 /*
+  see if a file on the microSD card holds exactly data
+ */
+static bool file_matches(const char *path, const char *data, uint32_t size)
+{
+    FIL fh;
+    if (f_open(&fh, path, FA_READ) != FR_OK) {
+        return false;
+    }
+    bool match = (f_size(&fh) == size);
+    uint8_t buf[512];
+    uint32_t offset = 0;
+    while (match && offset < size) {
+        const UINT want = (size - offset) < sizeof(buf) ? (size - offset) : sizeof(buf);
+        UINT got = 0;
+        if (f_read(&fh, buf, want, &got) != FR_OK || got != want ||
+            memcmp(buf, &data[offset], got) != 0) {
+            match = false;
+        }
+        offset += got;
+    }
+    f_close(&fh);
+    return match;
+}
+
+/*
+  save a recovery copy of a firmware image as final_name.  The rescue
+  image flashes final_name without checking it, so the copy is written
+  as tmp_name, which it ignores, read back and compared, and only then
+  renamed: final_name never holds a partial or unflushed copy
+ */
+static bool save_recovery_copy(const char *final_name, const char *tmp_name,
+                               const char *data, uint32_t size)
+{
+    // whatever is there now is being replaced, and f_rename won't
+    // overwrite it
+    f_unlink(final_name);
+    if (dev_write_file(tmp_name, (const uint8_t *)data, size) != 0) {
+        return false;
+    }
+    // dev_write_file() doesn't report a failure to flush the file, so
+    // check what actually reached the card
+    set_upload_progress(95);
+    if (!file_matches(tmp_name, data, size)) {
+        return false;
+    }
+    return f_rename(tmp_name, final_name) == FR_OK;
+}
+
+/*
   handle sonix fw update
  */
 static void handle_sonix_upgrade(struct template_state *tmpl, const char *filename, const char *filedata, uint32_t size)
 {
     const char *recovery_file = "FIRMWARE_660R.bin";
+    const char *recovery_tmp = "FIRMWARE_660R.tmp";
     set_upload_message("checking firmware MD5");
     set_upload_progress(1);
     if (check_fw_md5((const unsigned char *)filedata, size)) {
@@ -492,22 +542,29 @@ static void handle_sonix_upgrade(struct template_state *tmpl, const char *filena
         // not 100 yet: the page stops polling at 100, and should still
         // see what happens with the microSD copy
         set_upload_progress(90);
-        // write to FIRMWARE_660R.bin for recovery.  The image is
-        // already in memory, so if the microSD card can't take it we
-        // still upgrade: a broken card mustn't stop the firmware that
-        // might fix it being loaded.  A partly-written copy must go
-        // first, as the rescue image flashes FIRMWARE_660R.bin unchecked
-        const bool saved_copy = (dev_write_file(recovery_file, (const uint8_t *)filedata, size) == 0);
+        // save a copy for recovery.  The image is already in memory, so
+        // if the microSD card can't take it we still upgrade: a broken
+        // card mustn't stop the firmware that might fix it being loaded
+        const bool saved_copy = save_recovery_copy(recovery_file, recovery_tmp, filedata, size);
         if (!saved_copy) {
-            f_unlink(recovery_file);
-            // refuse if the copy may still be there: it is (FR_OK), or
-            // FatFS couldn't get the volume lock in time (FR_TIMEOUT),
-            // which says nothing about the card.  Any other error means
-            // the card can't be read, by us or by the rescue image
+            // a failed copy only ever leaves the temporary file, which
+            // the rescue image ignores
+            f_unlink(recovery_tmp);
+            // but something may still be under the rescue image's name:
+            // an older copy that couldn't be removed (e.g. from a failed
+            // upload on port 2018), or a complete one if the rename
+            // failed part way.  Only go ahead if it is gone, or the card
+            // can't be read at all.  Any other result may leave it there
+            // (e.g. FR_TIMEOUT from the volume lock or card-detect,
+            // FR_NOT_ENOUGH_CORE from the long-name buffer), so refuse
+            // as before
             FILINFO fno = {0};
             const FRESULT res = f_stat(recovery_file, &fno);
-            if (res == FR_OK || res == FR_TIMEOUT) {
-                set_upload_message("Failed to write image to microSD, and couldn't remove the partial copy - please check SD card");
+            const bool copy_gone = (res == FR_NO_FILE || res == FR_NO_PATH);
+            const bool card_unreadable = (res == FR_DISK_ERR || res == FR_NOT_READY ||
+                                          res == FR_NOT_ENABLED || res == FR_NO_FILESYSTEM);
+            if (!copy_gone && !card_unreadable) {
+                set_upload_message("Failed to save a copy to microSD, and couldn't remove the old one - please check SD card");
                 set_upload_progress(100);
                 return;
             }
