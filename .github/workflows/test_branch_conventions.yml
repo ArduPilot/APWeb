@@ -20,8 +20,6 @@ jobs:
     env:
       BASE_REF: ${{ github.event.pull_request.base.ref }}
       BASE_CLONE_URL: ${{ github.event.pull_request.base.repo.clone_url }}
-      # for the GitHub API calls checking submodule references
-      GITHUB_TOKEN: ${{ github.token }}
 
     steps:
       - name: Checkout PR branch
@@ -32,6 +30,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           submodules: 'false'
           fetch-depth: 0
+          # nothing here pushes, so don't leave the token in .git/config
+          persist-credentials: false
 
       - name: Fetch base branch
         run: |
@@ -43,5 +43,9 @@ jobs:
           npm install -g markdownlint-cli2@0.4.0
 
       - name: Check branch conventions
+        env:
+          # for the GitHub API calls checking submodule references; only
+          # this step needs it
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           python3 .github/scripts/check_branch_conventions.py --base-branch "upstream/$BASE_REF"

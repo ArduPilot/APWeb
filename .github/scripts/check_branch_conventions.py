@@ -161,7 +161,10 @@ class CheckBranchConventions:
 
     def check_author_emails(self) -> bool:
         emails = self.run_git(["log", f"{self.base_branch}..{self.head}", "--format=%ae"]).strip()
-        bad = [email for email in emails.splitlines() if "example.com" in email]
+        def example_domain(email):
+            domain = email.rpartition("@")[2].casefold()
+            return domain == "example.com" or domain.endswith(".example.com")
+        bad = [email for email in emails.splitlines() if example_domain(email)]
         if bad:
             print(f"{FAIL} Author email(s) with example.com are not allowed:")
             for email in bad:
@@ -236,9 +239,12 @@ class CheckBranchConventions:
             moved = {p for move in moves for p in move}
             submodule_changes = ([f"{a} -> {b}" for a, b in moves] +
                                  [path for path in submodule_paths if path not in moved])
-            # adding, moving or removing a submodule edits .gitmodules too
+            # adding, moving or removing a submodule edits .gitmodules too;
+            # just updating one shouldn't, so then it counts as another change
+            adds_or_removes = any(old is None or new is None for _, old, new in gitlinks)
             other_changes = [p for p in changed
-                             if p not in submodule_paths and p != ".gitmodules"]
+                             if p not in submodule_paths
+                             and not (p == ".gitmodules" and adds_or_removes)]
             commit_ok = True
             if len(submodule_changes) > 1:
                 print(f"{FAIL} {commit[:12]} updates multiple submodules in one commit: "
@@ -319,12 +325,10 @@ class CheckBranchConventions:
             # their URLs, so a submodule a later commit moves or
             # removes is still checked
             submodule_urls = self.get_submodule_urls(commit)
-            for submodule_path in self.get_submodule_changes_for_commit(commit):
-                # format: "160000 commit <sha> <path>"
-                parts = self.run_git(['ls-tree', commit, submodule_path]).split()
-                if len(parts) < 3 or parts[1] != 'commit':
+            for submodule_path, _, sha in self.get_gitlink_changes_for_commit(commit):
+                if sha is None:
+                    # removed: there is no new reference to check
                     continue
-                sha = parts[2]
                 url = submodule_urls.get(submodule_path)
                 owner_repo = self._github_repo_from_url(url) if url else None
                 label = f"{commit[:12]} references {submodule_path}@{sha[:12]}"
@@ -350,7 +354,7 @@ class CheckBranchConventions:
 
     def changed_markdown(self) -> list:
         return self.run_git_z(["diff", "--name-only", "--diff-filter=AMR",
-                               f"{self.base_branch}...{self.head}", "--", "*.md"])
+                               f"{self.base_branch}...{self.head}", "--", ":(icase)*.md"])
 
     @staticmethod
     def _markdown_lines(text: str):
