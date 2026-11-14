@@ -6,8 +6,8 @@ Check PR branch commit conventions and markdown linting.
 Validates:
   - no merge commits
   - no fixup! commits
-  - commit messages have a well-formed subsystem prefix before ':'
-    (and not DEBUG:, WIP: etc.)
+  - no commits marked as not ready (DEBUG:, WIP: etc.); unlike
+    ArduPilot, a subsystem prefix isn't required
   - commit subject lines are <= 160 characters
   - no example.com author emails
   - submodule updates are isolated in their own commits
@@ -18,7 +18,8 @@ Validates:
     RST-style markup
 
 Taken from ArduPilot's Tools/scripts/check_branch_conventions.py, less its
-ArduPilot-only checks (board IDs, the subsystem-to-path mapping).
+ArduPilot-only checks (board IDs, the subsystem-to-path mapping) and its
+subsystem prefix requirement.
 '''
 
 import argparse
@@ -41,8 +42,6 @@ BLACKLISTED_PREFIXES = {
     "TMP",
     "WIP",
 }
-# spaces and quotes allowed to support Revert commits e.g. 'Revert "mavlink.js: ...'
-PREFIX_RE = re.compile(r'^[-A-Za-z0-9._/" ]+$')
 
 # extensions checked for a lost trailing newline
 SOURCE_EXTENSIONS = {
@@ -92,17 +91,6 @@ class CheckBranchConventions:
         '''return the list of paths changed in a single commit'''
         return self.run_git_z(['diff-tree', '--no-commit-id', '-r', '--name-only', commit])
 
-    def subsystem_for_commit(self, sha: str) -> str | None:
-        '''suggest a prefix in this repository's style: the file name
-           if the commit changes one file, else its common directory'''
-        paths = self.get_changed_paths_for_commit(sha)
-        if len(paths) == 1:
-            return os.path.basename(paths[0])
-        dirs = {os.path.dirname(p) for p in paths}
-        if len(dirs) == 1 and next(iter(dirs)):
-            return next(iter(dirs))
-        return None
-
     def check_merge_commits(self) -> bool:
         merge_commits = self.run_git(
             ["log", f"{self.base_branch}..{self.head}", "--merges", "--oneline"],
@@ -131,39 +119,22 @@ class CheckBranchConventions:
         return True
 
     def check_commit_messages(self, commits: str) -> bool:
+        '''reject commits marked as not ready (DEBUG:, WIP: etc.).  A
+           subsystem prefix isn't required here, so this is the only
+           check on the subject's prefix.'''
         ok = True
         for line in commits.splitlines():
             if not line.strip():
                 continue
             # strip leading hash from --oneline format
-            sha, separator, subject = line.partition(" ")
-            if not separator:
-                sha, subject = "", line
-            if ":" not in subject:
-                suggestion = self.subsystem_for_commit(sha) if sha else None
-                print(f"{FAIL} Commit message subject is missing its subsystem prefix: {line}")
-                print("       (this is about the git commit message, not the pull request title)")
-                if suggestion is not None:
-                    print(f"       Reword the commit message to: '{suggestion}: {subject}'")
-                else:
-                    print(f"       Reword the commit message to e.g. 'mavlink.js: {subject}'")
-                print("       Use 'git commit --amend' for the most recent commit, "
-                      "'git rebase -i' for an older one.")
-                print(f"       See: {DOCS_URL}")
-                ok = False
-                continue
-            prefix = subject.split(":")[0]
-            if prefix.strip().upper() in BLACKLISTED_PREFIXES:
-                print(f"{FAIL} Commit has bad subsystem prefix '{prefix}': {line}")
-                print(f"       See: {DOCS_URL}")
-                ok = False
-            if not PREFIX_RE.match(prefix):
-                print(f"{FAIL} Commit has malformed subsystem prefix '{prefix}': {line}")
-                print("       Prefix must contain only letters, digits, '.', '_', '/', '-', spaces, quotes.")
+            subject = line.partition(" ")[2] or line
+            prefix, colon, _ = subject.partition(":")
+            if colon and prefix.strip().upper() in BLACKLISTED_PREFIXES:
+                print(f"{FAIL} Commit is marked as not ready ('{prefix}:'): {line}")
                 print(f"       See: {DOCS_URL}")
                 ok = False
         if ok:
-            print(f"{PASS} All commit messages have well-formed subsystem tags.")
+            print(f"{PASS} No commits marked as not ready (DEBUG:, WIP: etc.).")
         return ok
 
     def check_commit_lengths(self, commits: str) -> bool:
