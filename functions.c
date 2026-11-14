@@ -497,7 +497,8 @@ static void handle_sonix_upgrade(struct template_state *tmpl, const char *filena
         // still upgrade: a broken card mustn't stop the firmware that
         // might fix it being loaded.  A partly-written copy must go
         // first, as the rescue image flashes FIRMWARE_660R.bin unchecked
-        if (dev_write_file(recovery_file, (const uint8_t *)filedata, size) != 0) {
+        const bool saved_copy = (dev_write_file(recovery_file, (const uint8_t *)filedata, size) == 0);
+        if (!saved_copy) {
             f_unlink(recovery_file);
             if (file_exists(recovery_file)) {
                 set_upload_message("Failed to write image to microSD, and couldn't remove the partial copy - please check SD card");
@@ -507,8 +508,9 @@ static void handle_sonix_upgrade(struct template_state *tmpl, const char *filena
             set_upload_message("Failed to save a copy to microSD - upgrading anyway");
             mdelay(3000);
         }
-        // give time for UI to update
-        set_upload_message("starting upgrade");
+        // give time for UI to update.  This is the message the page
+        // keeps, so it says again if there is no microSD copy
+        set_upload_message(saved_copy ? "starting upgrade" : "starting upgrade (no microSD copy saved)");
         set_upload_progress(100);
         mdelay(3000);
         fw_upgrade(__DECONST(char*,filedata), size);
