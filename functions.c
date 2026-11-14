@@ -500,7 +500,13 @@ static void handle_sonix_upgrade(struct template_state *tmpl, const char *filena
         const bool saved_copy = (dev_write_file(recovery_file, (const uint8_t *)filedata, size) == 0);
         if (!saved_copy) {
             f_unlink(recovery_file);
-            if (file_exists(recovery_file)) {
+            // refuse if the copy may still be there: it is (FR_OK), or
+            // FatFS couldn't get the volume lock in time (FR_TIMEOUT),
+            // which says nothing about the card.  Any other error means
+            // the card can't be read, by us or by the rescue image
+            FILINFO fno = {0};
+            const FRESULT res = f_stat(recovery_file, &fno);
+            if (res == FR_OK || res == FR_TIMEOUT) {
                 set_upload_message("Failed to write image to microSD, and couldn't remove the partial copy - please check SD card");
                 set_upload_progress(100);
                 return;
