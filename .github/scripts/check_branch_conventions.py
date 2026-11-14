@@ -5,7 +5,7 @@ Check PR branch commit conventions and markdown linting.
 
 Validates:
   - no merge commits
-  - no fixup! commits
+  - no fixup!, squash! or amend! commits
   - no commits marked as not ready (DEBUG:, WIP: etc.); unlike
     ArduPilot, a subsystem prefix isn't required
   - commit subject lines are <= 160 characters
@@ -35,6 +35,8 @@ import urllib.request
 
 DOCS_URL = "https://ardupilot.org/dev/docs/submitting-patches-back-to-master.html"
 MAX_SUBJECT_LEN = 160
+# subjects git rebase --autosquash acts on
+AUTOSQUASH_MARKERS = ("fixup!", "squash!", "amend!")
 BLACKLISTED_PREFIXES = {
     "DEBUG",
     "DRAFT",
@@ -52,10 +54,10 @@ SOURCE_EXTENSIONS = {
     ".js", ".html", ".css",
 }
 
-# Enable colour when attached to a terminal or running under GitHub Actions
 # paths may hold bytes that aren't UTF-8; print them escaped rather than fail
 sys.stdout.reconfigure(errors="backslashreplace")
 
+# Enable colour when attached to a terminal or running under GitHub Actions
 _colour = sys.stdout.isatty() or os.environ.get('GITHUB_ACTIONS') == 'true'
 _GREEN = '\033[32m' if _colour else ''
 _RED = '\033[31m' if _colour else ''
@@ -90,10 +92,11 @@ class CheckBranchConventions:
            to git or the filesystem unchanged'''
         args = list(args)
         # -z goes straight after the subcommand: after a "--" it would be a path
+        # decoded here rather than in text mode, which would turn a
+        # carriage return in a path into a newline
         out = subprocess.run(["git", "-c", "core.quotePath=false", args[0], "-z"] + args[1:],
-                             check=True, capture_output=True,
-                             encoding="utf-8", errors="surrogateescape").stdout
-        return [f for f in out.split("\0") if f]
+                             check=True, capture_output=True).stdout
+        return [f for f in out.decode("utf-8", "surrogateescape").split("\0") if f]
 
     def get_changed_paths_for_commit(self, commit: str) -> list:
         '''return the list of paths changed in a single commit'''
@@ -113,17 +116,21 @@ class CheckBranchConventions:
         return True
 
     def check_fixup_commits(self, commits: str) -> bool:
-        # git's fixup! commits start with it; ArduPilot looks anywhere in
-        # the line, which also catches commits merely mentioning fixup!
+        # git's fixup!, squash! and amend! commits (for git rebase
+        # --autosquash) start with their marker; ArduPilot looks for
+        # fixup! anywhere in the line, which also catches commits merely
+        # mentioning it
         bad = [line for line in commits.splitlines()
-               if line.partition(" ")[2].startswith("fixup!")]
+               if line.partition(" ")[2].startswith(AUTOSQUASH_MARKERS)]
         if bad:
-            print(f"{FAIL} fixup! commits are not allowed:")
+            print(f"{FAIL} fixup!, squash! and amend! commits are not allowed:")
             for line in bad:
                 print(f"         {line}")
+            print("       Squash them into the commits they fix, e.g. with "
+                  "'git rebase -i --autosquash'.")
             print(f"       See: {DOCS_URL}")
             return False
-        print(f"{PASS} No fixup! commits.")
+        print(f"{PASS} No fixup!, squash! or amend! commits.")
         return True
 
     def check_commit_messages(self, commits: str) -> bool:
@@ -220,6 +227,22 @@ class CheckBranchConventions:
         '''paths of the submodules a commit adds, updates or removes'''
         return [path for path, _, _ in self.get_gitlink_changes_for_commit(commit)]
 
+    def _gitmodules_entries(self, rev: str) -> dict:
+        '''every .gitmodules setting as of rev, as {"submodule.<name>.<key>": value};
+           empty if rev has no .gitmodules'''
+        try:
+            entries = self.run_git_z(['config', '--blob', f'{rev}:.gitmodules', '--list'])
+        except subprocess.CalledProcessError:
+            return {}
+        # with -z each is "key\nvalue"
+        return dict(entry.partition("\n")[::2] for entry in entries)
+
+    @staticmethod
+    def _submodule_names(entries: dict) -> dict:
+        '''map submodule path to name, from _gitmodules_entries()'''
+        return {value: key[len("submodule."):-len(".path")] for key, value in entries.items()
+                if key.startswith("submodule.") and key.endswith(".path")}
+
     def check_submodule_isolation(self) -> bool:
         '''check that each submodule update is isolated in its own commit'''
         ok = True
@@ -229,22 +252,46 @@ class CheckBranchConventions:
             submodule_paths = [path for path, _, _ in gitlinks]
             if not submodule_paths:
                 continue
+            old_modules = self._gitmodules_entries(f"{commit}^")
+            new_modules = self._gitmodules_entries(commit)
+            old_names = self._submodule_names(old_modules)
+            new_names = self._submodule_names(new_modules)
             # a moved submodule is removed at one path and added at
-            # another at the same commit: count it once
-            removed = {old: path for path, old, new in gitlinks if new is None}
+            # another: count it once.  Pair them by their .gitmodules
+            # name, which a move keeps (so a move can bump it too), or
+            # else by an unchanged SHA
+            removed = [(path, old) for path, old, new in gitlinks if new is None]
             moves = []
             for path, old, new in gitlinks:
-                if old is None and new in removed:
-                    moves.append((removed.pop(new), path))
+                if old is not None:
+                    continue
+                match = next((r for r in removed if old_names.get(r[0]) is not None
+                              and old_names.get(r[0]) == new_names.get(path)), None)
+                if match is None:
+                    match = next((r for r in removed if r[1] == new), None)
+                if match is not None:
+                    removed.remove(match)
+                    moves.append((match[0], path))
             moved = {p for move in moves for p in move}
             submodule_changes = ([f"{a} -> {b}" for a, b in moves] +
                                  [path for path in submodule_paths if path not in moved])
-            # adding, moving or removing a submodule edits .gitmodules too;
-            # just updating one shouldn't, so then it counts as another change
-            adds_or_removes = any(old is None or new is None for _, old, new in gitlinks)
+            # adding, moving or removing a submodule edits its own
+            # .gitmodules entry; any other .gitmodules change (including
+            # every change when a submodule is only updated) counts as
+            # another change
+            touched = set()
+            for path, old, new in gitlinks:
+                if old is None and path in new_names:
+                    touched.add(new_names[path])
+                if new is None and path in old_names:
+                    touched.add(old_names[path])
+            def owner(key):
+                # "submodule.<name>.<key>": the name may hold dots
+                return key[len("submodule."):key.rindex(".")] if key.startswith("submodule.") else None
+            stray = [key for key in set(old_modules) | set(new_modules)
+                     if old_modules.get(key) != new_modules.get(key) and owner(key) not in touched]
             other_changes = [p for p in changed
-                             if p not in submodule_paths
-                             and not (p == ".gitmodules" and adds_or_removes)]
+                             if p not in submodule_paths and not (p == ".gitmodules" and not stray)]
             commit_ok = True
             if len(submodule_changes) > 1:
                 print(f"{FAIL} {commit[:12]} updates multiple submodules in one commit: "
@@ -253,6 +300,9 @@ class CheckBranchConventions:
             if other_changes:
                 print(f"{FAIL} {commit[:12]} updates submodule(s) {submodule_changes} "
                       f"but also modifies: {other_changes}")
+                if stray:
+                    print(f"       (.gitmodules settings changed beyond adding, moving or removing "
+                          f"a submodule: {sorted(stray)})")
                 commit_ok = False
             if commit_ok:
                 print(f"{PASS} {commit[:12]} is a clean submodule update of {submodule_changes[0]}")
@@ -300,6 +350,9 @@ class CheckBranchConventions:
             return None, f"GitHub API returned HTTP {e.code} for {owner_repo}"
         except urllib.error.URLError as e:
             return None, f"GitHub API unreachable: {e.reason}"
+        except (OSError, ValueError) as e:
+            # e.g. the response timing out part way, or a body that isn't JSON
+            return None, f"GitHub API response unusable: {e}"
         status = data.get('status', '')
         if status in ('behind', 'identical'):
             return True, ""
